@@ -1,3 +1,15 @@
+"""
+Author: Ivan Bongiorni, 2020-03-08          https://github.com/IvanBongiorni
+
+DATA PRE-PROCESSING TOOLBOX FOR amazonhelp TWEETS
+
+The code is intended to be used as follows: it's a local module containing a main wrapper function: get_Amazon_dataset().
+It should be called from the main Notebook or script, provided the right path to the Twitter Customer Support Dataset 
+in order to get the already vectorized Q and A matrices. Additionally, a Python dictionary char2idx is returned too, 
+providing a mapping between characters and numerical indexes.
+
+Data are pre-processed for character embedding RNNs.
+"""
 
 def check_language(tweet):
     ''' Uses langdetect to check for English tweets. Non-English tweets won't be
