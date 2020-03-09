@@ -1,5 +1,6 @@
 """
-Author: Ivan Bongiorni, 2020-03-08          https://github.com/IvanBongiorni
+Author: Ivan Bongiorni,     https://github.com/IvanBongiorni
+2020-03-08
 
 DATA PRE-PROCESSING TOOLBOX FOR amazonhelp TWEETS
 
@@ -202,9 +203,7 @@ def get_Amazon_dataset(path):
     import numpy as np
     import pandas as pd
     import langdetect
-
-    from main import *
-
+    
     start = time.time()
 
     # Load data
