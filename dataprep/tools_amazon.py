@@ -5,8 +5,8 @@ Author: Ivan Bongiorni,     https://github.com/IvanBongiorni
 DATA PRE-PROCESSING TOOLBOX FOR amazonhelp TWEETS
 
 The code is intended to be used as follows: it's a local module containing a main wrapper function: get_Amazon_dataset().
-It should be called from the main Notebook or script, provided the right path to the Twitter Customer Support Dataset 
-in order to get the already vectorized Q and A matrices. Additionally, a Python dictionary char2idx is returned too, 
+It should be called from the main Notebook or script, provided the right path to the Twitter Customer Support Dataset
+in order to get the already vectorized Q and A matrices. Additionally, a Python dictionary char2idx is returned too,
 providing a mapping between characters and numerical indexes.
 
 Data are pre-processed for character embedding RNNs.
@@ -203,7 +203,7 @@ def get_Amazon_dataset(path):
     import numpy as np
     import pandas as pd
     import langdetect
-    
+
     start = time.time()
 
     # Load data
@@ -214,7 +214,8 @@ def get_Amazon_dataset(path):
     # Generate alphabet
     alphabet = string.printable
     alphabet = alphabet.replace('ABCDEFGHIJKLMNOPQRSTUVWXYZ', '')
-    alphabet = alphabet.replace('[\\]^_`{|}~ \t\n\r\x0b\x0c', '')
+    alphabet = alphabet.replace('[\\]^_`{|}~')
+    alphabet = alphabet.replace('\t\n\r\x0b\x0c', '')
     alphabet = alphabet.replace(';<=>', '')
     alphabet = alphabet.replace('*+', '')
     alphabet += '§' # ö'
