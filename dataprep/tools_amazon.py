@@ -214,12 +214,12 @@ def get_Amazon_dataset(path):
     # Generate alphabet
     alphabet = string.printable
     alphabet = alphabet.replace('ABCDEFGHIJKLMNOPQRSTUVWXYZ', '')
-    alphabet = alphabet.replace('[\\]^_`{|}~')
+    alphabet = alphabet.replace('[\\]^_`{|}~', '')
     alphabet = alphabet.replace('\t\n\r\x0b\x0c', '')
     alphabet = alphabet.replace(';<=>', '')
     alphabet = alphabet.replace('*+', '')
     alphabet += '§' # ö'
-
+    
     # Mapping char-index for vectorization
     char2idx = { char[1]: char[0] for char in enumerate(alphabet, 1) }
 
