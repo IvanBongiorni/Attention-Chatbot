@@ -1,3 +1,6 @@
 # Hyperparams
+embedding_size: 300
 batch_size: 80
+learning_rate: 0.0001
 
+n_epochs: 50
