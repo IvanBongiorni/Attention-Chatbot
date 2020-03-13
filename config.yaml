@@ -1,6 +1,15 @@
+# Paths
+data_path: ""
+save_path: ""
+
 # Hyperparams
 embedding_size: 300
-batch_size: 80
+batch_size: 64
 learning_rate: 0.0001
 
+# Training
 n_epochs: 50
+shuffle: True
+
+
+
