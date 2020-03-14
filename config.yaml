@@ -4,7 +4,6 @@ save_path: ""
 
 # Hyperparams
 encoder_units:
-attention_units:
 decoder_units:
 
 embedding_size: 300
