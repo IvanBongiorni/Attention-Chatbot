@@ -3,6 +3,10 @@ data_path: ""
 save_path: ""
 
 # Hyperparams
+encoder_units:
+attention_units:
+decoder_units:
+
 embedding_size: 300
 batch_size: 64
 learning_rate: 0.0001
