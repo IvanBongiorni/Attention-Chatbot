@@ -1,3 +1,4 @@
+
 # Paths
 data_path: ""
 save_path: ""
@@ -5,6 +6,7 @@ save_path: ""
 # Hyperparams
 encoder_units:
 decoder_units:
+recurrent_initializer: "glorot_uniform"
 
 embedding_size: 300
 batch_size: 64
