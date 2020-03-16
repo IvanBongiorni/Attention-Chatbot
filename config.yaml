@@ -1,20 +1,29 @@
+# CONFIGURATION PARAMETERS
 
 # Paths
 data_path: ""
 save_path: ""
 
+
 # Hyperparams
-encoder_units:
-decoder_units:
+embedding_size: 300
+
+encoder_lstm_units:
+
+conv_filters: [16, 32, 64]
+conv_activation: "relu"
+
+decoder_lstm_units:
+decoder_dense_units: 
+decoder_dense_activation: "elu"
+
 recurrent_initializer: "glorot_uniform"
 
-embedding_size: 300
-batch_size: 64
-learning_rate: 0.0001
 
 # Training
 n_epochs: 50
 shuffle: True
 
-
+batch_size: 64
+learning_rate: 0.0001
 
