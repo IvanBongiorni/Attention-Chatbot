@@ -1,68 +1,78 @@
 """
 Author: Ivan Bongiorni,     https://github.com/IvanBongiorni
-2020-03-14
+2020-03-19
 
 MODEL BUILDING
-
-This is a seq2seq model with Convolutional pseudo-Attention. It differs from canonical Attention since 
-its scores are not calculated iteratively, as the output of the model progresses. All scores are computed
-at once, stacked with the Encoder's output, and fed into the Decoder LSTM layer.
-
-With it I expect to be able to put together two benefits of RNNs and CNNs. RNNs are perfect in order to 
-process time dependent data, but their problem is dealing with long-term dependency: all Encoder output 
-information has to be squeezed into a single vector. 1D Conv layers are meant intestead to process time series 
-in a different way, and to "bring time back" to the Decoder.
 """
 
 
 def build(params):
+    """ 
+    Implements a seq2seq RNN with Convolutional self attention. It keeps a canonical 
+    Encoder-Decoder structure: an Embedding layers receives the sequence of chars and 
+    learns a representation. This series is received by two different layers at the same time. 
+    First, an LSTM Encoder layer, whose output is repeated and sent to the Decoder. Second, a 
+    block of 1D Conv layers. Their kernel filters work as multi-head self attention layers.
+    All their scores are pushed through a TanH gate that scales each score in the [-1,1] range.
+    Both LSTM and Conv outputs are concatenated and sent to an LSTM Decoder, that processes
+    the signal and sents it to Dense layers, performing the prediction for each step of the 
+    output series.
+    
+    Args: params dict
+    """
     import tensorflow as tf
-    from tensorflow.keras.models import Model
-    from tensorflow.keras.layers import Input, Embedding, LSTM, RepeatVector, Conv1D, Dense, TimeDistributed
+    from tensorflow.keras.models import Model 
+    from tensorflow.keras.layers import (
+        Input, Embedding, LSTM, RepeatVector, Conv1D, BatchNormalization, 
+        Concatenate, LSTM, TimeDistributed, Dense
+    )
     
-
     # ENCODER
-    encoder_input = Input()
+    encoder_input = Input((params['len_input']), name = 'input')
+
+    encoder_embedding = Embedding(params['dict_size'], 
+                                  params['embedding_size'], 
+                                  name = 'embedding')(encoder_input)
+
+    encoder_lstm = LSTM(params['encoder_lstm_units'], 
+                        name = 'encoder_lstm')(encoder_embedding)
+
+    encoder_output = RepeatVector(params['decoder_lstm_units'], 
+                                  name = 'encoder_output')(encoder_lstm)
+
     
-    encoder_embedding = Embedding(params['vocab_size'], params['embedding_size'])(encoder_input)
-    
-    encoder_output = LSTM(params['encoder_lstm_units'], 
-                          return_sequences = True, 
-                          recurrent_initializer = params['recurrent_initializer'])(encoder_embedding)
-    
-    encoder_output = RepeatVector(params['decoder_units'])
-    
-    
-    # Convolutional Pseudo-Attention
-    conv_1 = Conv1D(filters = params['conv_filters'][0], 
-                    kernel_size = 3, padding = 'same', activation = params['conv_activation'])
-    conv_2 = Conv1D(filters = params['conv_filters'][1], 
-                    kernel_size = 3, padding = 'same', activation = params['conv_activation'])
-    conv_3 = Conv1D(filters = params['conv_filters'][0], 
-                    kernel_size = 3, padding = 'same', activation = params['conv_activation'])
-    # scores = Dense(params['decoder_units'], activation = 'softmax')(conv)
-    
-    
-    # Concatenation of Encoder and Pseudo-Attention scores
-    concatenation = Concatenate([encoder_output, scores], axis = )
-    
-    
+    # Convolutional Self-Attention
+    conv_1 = Conv1D(filters = params['conv_filters'][0], kernel_size = params['kernel_size'], 
+                    activation = params['conv_activation'], padding = 'same', name = 'conv1')(encoder_embedding)
+    if params['use_batchnorm']:
+        conv_1 = BatchNormalization(name = 'batchnorm_1')(conv_1)
+
+    conv_2 = Conv1D(filters = params['conv_filters'][1], kernel_size = params['kernel_size'], 
+                    activation = params['conv_activation'], padding = 'same', name = 'conv2')(conv_1)
+    if params['use_batchnorm']:
+        conv_2 = BatchNormalization(name = 'batcnorm_2')(conv_2)
+
+    conv_3 = Conv1D(filters = params['conv_filters'][2], kernel_size = params['kernel_size'], 
+                    activation = params['conv_activation'], padding = 'same', name = 'conv3')(conv_2)
+    if params['use_batchnorm']:
+        conv_3 = BatchNormalization(name = 'batchnorm_3')(conv_3)
+
+    attention = tf.nn.tanh(conv_3, name = 'attention')
+
+
     # DECODER
-    decoder_output = LSTM(params['decoder_lstm_units'],
-                          return_sequences = True,
-                          recurrent_initializer = params['recurrent_initializer'])(concatenation)
-    
-    decoder_dense_1 = TimeDistributed(Dense(params['decoder_dense_units'], 
-                                            activation = params['decoder_dense_activation']))(decoder_output)
-    decoder_dense_2 = TimeDistributed(Dense(params['decoder_dense_units'], 
-                                            activation = params['decoder_dense_activation']))(decoder_dense_1)
-    decoder_output = TimeDistributed(Dense(1, activation = None))(decoder_dense_2)
-    
+    concatenation = Concatenate(axis = -1, name = 'concatenation')([encoder_output, attention])
+
+    decoder_lstm = LSTM(params['decoder_lstm_units'], return_sequences = True, 
+                        name = 'decoder_lstm')(concatenation)
+
+    decoder_dense = TimeDistributed(Dense(params['decoder_dense_units'], 
+                                          activation = params['decoder_dense_activation']), 
+                                    name = 'decoder_dense')(decoder_lstm)
+
+    decoder_output = TimeDistributed(Dense(1, activation = params['decoder_output_activation']), 
+                                     name = 'decoder_output')(decoder_dense)
+
     
     model = Model(inputs = [encoder_input], outputs = [decoder_output])
-    
     return model
-
-
-
-
