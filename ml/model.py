@@ -2,7 +2,7 @@
 Author: Ivan Bongiorni,     https://github.com/IvanBongiorni
 2020-03-19
 
-MODEL BUILDING
+Model implementation.
 """
 
 
