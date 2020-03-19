@@ -9,7 +9,7 @@ Data have been taken from Kaggle's [Customer Support on Twitter](https://www.kag
 
 ## How it works
 
-The model is a **Seq2Seq** Neural Network with **LSTM** layers and **Bahdanau Attention** in **TensorFlow 2.1**.
+The model is a **Seq2Seq** Neural Network with **LSTM** layers and **Convolutional Self-Attention**, written in **TensorFlow 2.1**.
 
 ( DETAILS )
 
