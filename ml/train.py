@@ -9,7 +9,7 @@ It's an Autograph function: the @tf.function decorator tranforms train_on_batch(
 """
 
 
-def train_model(model, params, X_train, Y_train, X_val, Y_val):
+def start_training(model, params, X_train, Y_train, X_val, Y_val):
     '''
     Training Autograph function
     '''
