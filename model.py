@@ -135,10 +135,10 @@ def test(model_path, X_test, Y_test):
     
     model = tf.keras.models.load_model(model_path)
     
-    P_test = model.predict(X_test)
+    #P_test = model.predict(X_test)
     
     test_loss = tf.reduce_mean(
-        tf.keras.losses.sparse_categorical_crossentropy(Y_batch, model(X_batch), 
+        tf.keras.losses.sparse_categorical_crossentropy(Y_test, model(X_test), 
                                                         from_logits = True))
     
     print("\nTest Loss: {}".format(test_loss.numpy()))
