@@ -4,15 +4,14 @@ Author: Ivan Bongiorni,     https://github.com/IvanBongiorni
 
 TRAINING FUNCTION
 
-Contains a single training function that is meant to be neutral, and that can be called for any chatbot implementation.
-It's an Autograph function: the @tf.function decorator tranforms train_on_batch() inner function into its TensorFlow graph representation.
+Contains a single training function that is meant to be neutral, and that can be called 
+for any chatbot implementation.
+It's an Autograph function: the @tf.function decorator tranforms train_on_batch() inner 
+function into its TensorFlow graph representation.
 """
 
 
-def start_training(model, params, X_train, Y_train, X_val, Y_val):
-    '''
-    Training Autograph function
-    '''
+def train_model(model, params, X_train, Y_train, X_val, Y_val):
     import time
     import numpy as np
     import tensorflow as tf
@@ -42,7 +41,9 @@ def start_training(model, params, X_train, Y_train, X_val, Y_val):
             current_loss = train_on_batch()
             # loss_history.append(current_loss)
     
-        validation_loss = loss(Y_val, model(X_val))
+        validation_loss = tf.reduce_mean(
+            tf.keras.losses.sparse_categorical_crossentropy(Y_val, model(X_val), 
+                                                            from_logits = True))
         
         print('{}.   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
             epoch, 
@@ -51,7 +52,7 @@ def start_training(model, params, X_train, Y_train, X_val, Y_val):
             round(time.time()-start, 2)
         ))
     print('Training complete.\n')
-    model.save(params['save_path'] + )
+    model.save('{}/{}.h5'.format(params['save_path'], params['model_name']))
     
     print('Model saved at:\n\t{}'.format(params['save_path'])
     return None
