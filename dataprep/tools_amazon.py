@@ -99,7 +99,7 @@ def process_x_text(tweet, alphabet):
     alphabet will be sustituted with char ü '''
     import re
 
-    tweet = [ char for char in tweet if char in alphabet else 'ü' ]
+    tweet = [ char if char in alphabet else 'ü' for char in tweet ]
 
     tweet = re.sub(' +', ' ', tweet)  # collapse multiple spaces left into one
     tweet = tweet.strip() # trim left and right spaces
@@ -111,7 +111,7 @@ def process_y_text(tweet, alphabet):
     alphabet will be eliminated. Eventual multiple spaces will be collapsed '''
     import re
 
-    tweet = [ char for char in tweet if char in alphabet else ' ' ]
+    tweet = [ char if char in alphabet else ' ' for char in tweet ]
 
     tweet = re.sub(' +', ' ', tweet)  # collapse multiple spaces left into one
     tweet = tweet.strip() # trim left and right spaces
@@ -228,8 +228,8 @@ def train_test_val_split(Q, A, val_size, test_size, seed):
 
 
 def get_amazon_dataset(path):
-    ''' Main wrapper of the whole pipe. Returns ready-to-use dataset of
-    @amazonhelp customer support tweets '''
+    ''' Main wrapper of the whole pipe. Returns ready-to-use dataset 
+    of @amazonhelp customer support tweets '''
     import time
     import string
     import re
@@ -251,7 +251,7 @@ def get_amazon_dataset(path):
     alphabet = alphabet.replace('\t\n\r\x0b\x0c', '')
     alphabet = alphabet.replace(';<=>', '')
     alphabet = alphabet.replace('*+', '')
-    alphabet += '§' # ö'
+    # alphabet += '§' # ö'
     print('\tGeneration of alphabet of size {}.'.format(len(alphabet)))
     
     # Mapping char-index for vectorization
