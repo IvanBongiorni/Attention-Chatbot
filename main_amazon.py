@@ -4,7 +4,10 @@ Author: Ivan Bongiorni,     https://github.com/IvanBongiorni
 
 KEEPS TRAINING PIPELINE TOGETHER
 
-This is supposed to be run from shell.
+It imports params and raw data, runs processing pipeline, builds/loads and trains 
+model, saves it in specific folder.
+
+To be run from shell.
 """
 
 
@@ -34,7 +37,7 @@ def start(verbose = True):
     
     # Instantiate model
     if params['load_saved_model']:
-        ### TODO: RESTORE SAVED MODEL
+        model = tf.keras.models.load_model(current_path + '/saved_models/' + params['model_name'])
     else:
         model = model.build(params)
         print('Model implemented:\n')
