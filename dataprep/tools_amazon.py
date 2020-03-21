@@ -252,17 +252,23 @@ def get_amazon_dataset(path):
     alphabet = alphabet.replace(';<=>', '')
     alphabet = alphabet.replace('*+', '')
     alphabet += '§' # ö'
+    print('\tGeneration of alphabet of size {}.'.format(len(alphabet)))
     
     # Mapping char-index for vectorization
     char2idx = { char[1]: char[0] for char in enumerate(alphabet, 1) }
+    print('\tCreation of dictionary for vectorization')
     
+    print('\tProcessing and cleaning of text data...')
     df = organize_QA_dataframe(df, alphabet)
+    print('\t... Done.')
     
     Q, A = vectorize_dataset(df, char2idx)
+    print('\tVectorization of characters.')
     
     Q_train, A_train, Q_val, A_val, Q_test, A_test = train_test_val_split(Q = Q, A = A, 
                                                                           val_size = params['val_test_size'][0], 
                                                                           test_size = params['val_test_size'][1],
                                                                           seed = params['seed'])
+    print('\tTrain-Validation-Test split.')
     
     return Q_train, A_train, Q_val, A_val, Q_test, A_test, char2idx
