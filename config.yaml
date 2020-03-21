@@ -4,10 +4,6 @@ model_name: "chatbot_00"
 load_saved_model: False
 seed: 123
 
-# Paths
-data_path: ""
-save_path: ""
-
 
 # Model Hyperparams
 len_input:
@@ -30,11 +26,8 @@ decoder_output_activation: "relu"
 
 # Training params
 val_test_size: [0.05, 0.05]
-
 n_epochs: 50
 shuffle: True
-
 batch_size: 64
 learning_rate: 0.0001
-
 verbose: True
