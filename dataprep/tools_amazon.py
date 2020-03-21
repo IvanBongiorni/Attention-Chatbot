@@ -120,7 +120,12 @@ def process_y_text(tweet, alphabet):
 
 def organize_QA_dataframe(df, alphabet):
     '''
-
+    Builds Q/A dataset. Steps:    
+    1. Pick Q tweets that started a chat and attach relative A.
+    2. Filter for selected company
+    3. Process text: Turn all lowercase; Keep English tweets only; Keep just complete 
+       tweets - not with (1/2) or (2/2); Call text cleant_text(), for both and separate 
+       for Q and A
     '''
     import numpy as np
     import pandas as pd
@@ -194,7 +199,35 @@ def vectorize_dataset(df, char2idx):
     return Q, A
 
 
-def get_Amazon_dataset(path):
+def train_test_val_split(Q, A, val_size, test_size, seed):
+    import numpy as np
+    import sklearn
+    
+    # np.random.seed(seed)
+    # perm = np.random.permutation(np.array(range(Q.shape[0])))
+    # Q = Q[ perm , : ]
+    # A = A[ perm , : ]
+    
+    # shuffle
+    Q, A = sklearn.utils.shuffle(Q, A, random_state = seed)
+    
+    # Compute cutoffs to make splits
+    train_val_cutoff = int( Q.shape[0] * (1-(val_size+test_size)) )
+    val_test_cutoff = int( Q.shape[0] * (1 - test_size) )
+    
+    Q_train = Q[ 0:train_val_cutoff , : ]
+    A_train = A[ 0:train_val_cutoff , : ]
+    
+    Q_val = Q[ train_val_cutoff:val_test_cutoff , : ]
+    A_val = A[ train_val_cutoff:val_test_cutoff , : ]
+    
+    Q_test = Q[ val_test_cutoff: , : ]
+    A_test = A[ val_test_cutoff: , : ]
+    
+    return Q_train, A_train, Q_val, A_val, Q_test, A_test
+
+
+def get_amazon_dataset(path):
     ''' Main wrapper of the whole pipe. Returns ready-to-use dataset of
     @amazonhelp customer support tweets '''
     import time
@@ -203,14 +236,14 @@ def get_Amazon_dataset(path):
     import numpy as np
     import pandas as pd
     import langdetect
-
+    
     start = time.time()
-
+    
     # Load data
     if not path.endswith('twcs.csv'):
         path += 'twcs.csv'
     df = pd.read_csv(path)
-
+    
     # Generate alphabet
     alphabet = string.printable
     alphabet = alphabet.replace('ABCDEFGHIJKLMNOPQRSTUVWXYZ', '')
@@ -222,9 +255,14 @@ def get_Amazon_dataset(path):
     
     # Mapping char-index for vectorization
     char2idx = { char[1]: char[0] for char in enumerate(alphabet, 1) }
-
+    
     df = organize_QA_dataframe(df, alphabet)
-
+    
     Q, A = vectorize_dataset(df, char2idx)
-
-    return Q, A, char2idx
+    
+    Q_train, A_train, Q_val, A_val, Q_test, A_test = train_test_val_split(Q = Q, A = A, 
+                                                                          val_size = params['val_test_size'][0], 
+                                                                          test_size = params['val_test_size'][1],
+                                                                          seed = params['seed'])
+    
+    return Q_train, A_train, Q_val, A_val, Q_test, A_test, char2idx
