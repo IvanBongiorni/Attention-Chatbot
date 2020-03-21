@@ -13,20 +13,22 @@ def start(verbose = True):
     import os
     import yaml
     import time
+    from pdb import set_trace as BP
     import numpy as np
     import pandas as pd
     import tensorflow as tf
     
     # Local modules
     from dataprep import tools_amazon
-    from ml import model
+    import model
     
     # Get current path
     current_path = os.getcwd()
     
     # Import params and update path
-    print('Importing configuration parameters.')
-    params = yaml.load(current_path + '/config.yaml')
+    print('\n\nImporting configuration parameters.')
+    params = yaml.load(open(current_path + '/config.yaml'))
+    
     params['data_path'] = current_path + '/data/'
     params['save_path'] = current_path + '/saved_models/'
     
