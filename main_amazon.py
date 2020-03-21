@@ -6,10 +6,8 @@ KEEPS TRAINING PIPELINE TOGETHER
 
 It imports params and raw data, runs processing pipeline, builds/loads and trains 
 model, saves it in specific folder.
-
 To be run from shell.
 """
-
 
 def start(verbose = True):
     import os
@@ -21,35 +19,41 @@ def start(verbose = True):
     
     # Local modules
     from dataprep import tools_amazon
-    from ml import model, train
+    from ml import model
     
     # Get current path
     current_path = os.getcwd()
     
     # Import params and update path
+    print('Importing configuration parameters.')
     params = yaml.load(current_path + '/config.yaml')
     params['data_path'] = current_path + '/data/'
     params['save_path'] = current_path + '/saved_models/'
     
     # Load data
+    print('Loading and preprocessing data...')
     Q_train, A_train, Q_val, A_val, Q_test, A_test, char2idx = tools_amazon.get_amazon_dataset(path = params['data_path'])
     params['dict_size'] = len(char2idx)  # add as hyperparams to build model
     
     # Instantiate model
     if params['load_saved_model']:
+        print('Loading model from:\n{}'.format(current_path + '/saved_models/'))
         model = tf.keras.models.load_model(current_path + '/saved_models/' + params['model_name'])
     else:
+        print('Building model.')
         model = model.build(params)
-        print('Model implemented:\n')
+        print('Model implemented as:\n')
         model.summary()
     
     # Train model
     print('\nStart model training for {} epochs'.format(params['n_epochs']))
-    train.start(model, params, Q_train, A_train, Q_val, A_val)
+    model.train(model, params, Q_train, A_train, Q_val, A_val)
     
+    # Test model
+    print("\n\nTesting model's performance on unseen data:")
+    model.test(current_path + '/saved_models/' + params['model_name'], 
+               Q_test, A_test)
     return None
-
-
 
 
 if __name__ == '__main__':
