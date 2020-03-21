@@ -1,13 +1,16 @@
 # CONFIGURATION PARAMETERS
 
+model_name: "chatbot_00"
+load_saved_model: False
+seed: 123
+
 # Paths
 data_path: ""
 save_path: ""
 
 
-# Hyperparams
+# Model Hyperparams
 len_input:
-dict_size: None
 
 embedding_size: 300
 
@@ -26,6 +29,8 @@ decoder_output_activation: "relu"
 
 
 # Training params
+val_test_size: [0.05, 0.05]
+
 n_epochs: 50
 shuffle: True
 
