@@ -12,6 +12,19 @@ providing a mapping between characters and numerical indexes.
 Data are pre-processed for character embedding RNNs.
 """
 
+def generate_alphabet():
+    import string
+    
+    alphabet = string.printable
+    alphabet = alphabet.replace('ABCDEFGHIJKLMNOPQRSTUVWXYZ', '')
+    alphabet = alphabet.replace('[\\]^_`{|}~', '')
+    alphabet = alphabet.replace('\t\n\r\x0b\x0c', '')
+    alphabet = alphabet.replace(';<=>', '')
+    alphabet = alphabet.replace('*+', '')
+    # alphabet += '§' # ö'
+    return alphabet
+
+
 def check_language(tweet):
     ''' Uses langdetect to check for English tweets. Non-English tweets won't be
     considered. List remove_for_langdetect is meant to fix recurrent errors in
@@ -100,6 +113,7 @@ def process_x_text(tweet, alphabet):
     import re
 
     tweet = [ char if char in alphabet else 'ü' for char in tweet ]
+    tweet = ''.join(tweet)
 
     tweet = re.sub(' +', ' ', tweet)  # collapse multiple spaces left into one
     tweet = tweet.strip() # trim left and right spaces
@@ -112,6 +126,7 @@ def process_y_text(tweet, alphabet):
     import re
 
     tweet = [ char if char in alphabet else ' ' for char in tweet ]
+    tweet = ''.join(tweet)
 
     tweet = re.sub(' +', ' ', tweet)  # collapse multiple spaces left into one
     tweet = tweet.strip() # trim left and right spaces
@@ -159,8 +174,8 @@ def organize_QA_dataframe(df, alphabet):
     exchanges['text_y'] = [ clean_text(tweet) for tweet in exchanges['text_y'].tolist() ]
 
     # Differentiate cleaning for Q and A
-    exchanges['text_x'] = [ process_x_text(tweet) for tweet in exchanges['text_x'].tolist() ]
-    exchanges['text_y'] = [ process_y_text(tweet) for tweet in exchanges['text_y'].tolist() ]
+    exchanges['text_x'] = [ process_x_text(tweet, alphabet) for tweet in exchanges['text_x'].tolist() ]
+    exchanges['text_y'] = [ process_y_text(tweet, alphabet) for tweet in exchanges['text_y'].tolist() ]
 
     return exchanges
 
@@ -184,6 +199,8 @@ def vectorize_dataset(df, char2idx):
         Packs both into single np.array's
         Sets common datatype
     '''
+    import numpy as np
+    
     Q = [ vectorize_tweet(tweet, char2idx) for tweet in df['text_x'].tolist() ]
     A = [ vectorize_tweet(tweet, char2idx) for tweet in df['text_y'].tolist() ]
 
@@ -193,7 +210,7 @@ def vectorize_dataset(df, char2idx):
 
     Q = np.stack(Q)
     A = np.stack(A)
-
+    
     Q = Q.astype(np.float32)
     A = A.astype(np.float32)
     return Q, A
@@ -227,7 +244,7 @@ def train_test_val_split(Q, A, val_size, test_size, seed):
     return Q_train, A_train, Q_val, A_val, Q_test, A_test
 
 
-def get_amazon_dataset(path):
+def get_amazon_dataset(params):
     ''' Main wrapper of the whole pipe. Returns ready-to-use dataset 
     of @amazonhelp customer support tweets '''
     import time
@@ -237,33 +254,39 @@ def get_amazon_dataset(path):
     import pandas as pd
     import langdetect
     
-    start = time.time()
-    
     # Load data
-    if not path.endswith('twcs.csv'):
-        path += 'twcs.csv'
-    df = pd.read_csv(path)
+    df = pd.read_csv('{}twcs.csv'.format(params['data_path'])
     
     # Generate alphabet
-    alphabet = string.printable
-    alphabet = alphabet.replace('ABCDEFGHIJKLMNOPQRSTUVWXYZ', '')
-    alphabet = alphabet.replace('[\\]^_`{|}~', '')
-    alphabet = alphabet.replace('\t\n\r\x0b\x0c', '')
-    alphabet = alphabet.replace(';<=>', '')
-    alphabet = alphabet.replace('*+', '')
-    # alphabet += '§' # ö'
+    alphabet = generate_alphabet()
     print('\tGeneration of alphabet of size {}.'.format(len(alphabet)))
     
     # Mapping char-index for vectorization
     char2idx = { char[1]: char[0] for char in enumerate(alphabet, 1) }
-    print('\tCreation of dictionary for vectorization')
+    print('\tCreation of dictionary for vectorization.')
     
-    print('\tProcessing and cleaning of text data...')
+    
+#     print('\n\nPRIMA DI organize_QA_dataframe:')
+#     BP()
+    
+    
+    print('\tCleaning and processing of text data...')
+    start = time.time()
     df = organize_QA_dataframe(df, alphabet)
-    print('\t... Done.')
+    print('\t... Done in {}ss.'.format(round(time.time()-start, 2)))
     
     Q, A = vectorize_dataset(df, char2idx)
     print('\tVectorization of characters.')
+    
+    
+    print('\nprova val_test_size:')
+    print(params['val_test_size'][0])
+    print(params['val_test_size'][1])
+    
+    print('\n\nDOPO organize_QA_dataframe - PRIMA DI tvt split:')
+    BP()
+    
+    
     
     Q_train, A_train, Q_val, A_val, Q_test, A_test = train_test_val_split(Q = Q, A = A, 
                                                                           val_size = params['val_test_size'][0], 
