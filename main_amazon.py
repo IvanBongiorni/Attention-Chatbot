@@ -27,14 +27,19 @@ def start(verbose = True):
     
     # Import params and update path
     print('\n\nImporting configuration parameters.')
-    params = yaml.load(open(current_path + '/config.yaml'))
+    params = yaml.load(open(current_path + '/config.yaml'), yaml.Loader)
     
     params['data_path'] = current_path + '/data/'
     params['save_path'] = current_path + '/saved_models/'
     
+    print('controllo params')
+    print(params['data_path'])
+    print(params['save_path'])
+    print(params['load_saved_model'])
+    
     # Load data
     print('Loading and preprocessing data...')
-    Q_train, A_train, Q_val, A_val, Q_test, A_test, char2idx = tools_amazon.get_amazon_dataset(path = params['data_path'])
+    Q_train, A_train, Q_val, A_val, Q_test, A_test, char2idx = tools_amazon.get_amazon_dataset(params)
     params['dict_size'] = len(char2idx)  # add as hyperparams to build model
     
     # Instantiate model
