@@ -32,13 +32,13 @@ def start(verbose = True):
     params['data_path'] = current_path + '/data/'
     params['save_path'] = current_path + '/saved_models/'
     
-    print('controllo params')
-    print(params['data_path'])
-    print(params['save_path'])
-    print(params['load_saved_model'])
+#     print('controllo params')
+#     print(params['data_path'])
+#     print(params['save_path'])
+#     print(params['load_saved_model'])
     
     # Load data
-    print('Loading and preprocessing data...')
+    print('Loading and preprocessing data:')
     Q_train, A_train, Q_val, A_val, Q_test, A_test, char2idx = tools_amazon.get_amazon_dataset(params)
     params['dict_size'] = len(char2idx)  # add as hyperparams to build model
     
