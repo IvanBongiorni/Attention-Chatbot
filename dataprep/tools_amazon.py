@@ -254,6 +254,8 @@ def get_amazon_dataset(params):
     import pandas as pd
     import langdetect
     
+    from pdb import set_trace as BP
+    
     # Load data
     df = pd.read_csv('{}twcs.csv'.format(params['data_path']))
     
@@ -278,10 +280,9 @@ def get_amazon_dataset(params):
     Q, A = vectorize_dataset(df, char2idx)
     print('\tVectorization of characters.')
     
-    
-    print('\nprova val_test_size:')
-    print(params['val_test_size'][0])
-    print(params['val_test_size'][1])
+#     print('\nprova val_test_size:')
+#     print(params['val_test_size'][0])
+#     print(params['val_test_size'][1])
     
     print('\n\nDOPO organize_QA_dataframe - PRIMA DI tvt split:')
     BP()
