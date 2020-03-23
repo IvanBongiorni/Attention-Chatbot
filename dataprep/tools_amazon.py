@@ -255,7 +255,7 @@ def get_amazon_dataset(params):
     import langdetect
     
     # Load data
-    df = pd.read_csv('{}twcs.csv'.format(params['data_path'])
+    df = pd.read_csv('{}twcs.csv'.format(params['data_path']))
     
     # Generate alphabet
     alphabet = generate_alphabet()
