@@ -14,7 +14,7 @@ Data are pre-processed for character embedding RNNs.
 
 def generate_alphabet():
     import string
-    
+
     alphabet = string.printable
     alphabet = alphabet.replace('ABCDEFGHIJKLMNOPQRSTUVWXYZ', '')
     alphabet = alphabet.replace('[\\]^_`{|}~', '')
@@ -135,11 +135,11 @@ def process_y_text(tweet, alphabet):
 
 def organize_QA_dataframe(df, alphabet):
     '''
-    Builds Q/A dataset. Steps:    
+    Builds Q/A dataset. Steps:
     1. Pick Q tweets that started a chat and attach relative A.
     2. Filter for selected company
-    3. Process text: Turn all lowercase; Keep English tweets only; Keep just complete 
-       tweets - not with (1/2) or (2/2); Call text cleant_text(), for both and separate 
+    3. Process text: Turn all lowercase; Keep English tweets only; Keep just complete
+       tweets - not with (1/2) or (2/2); Call text cleant_text(), for both and separate
        for Q and A
     '''
     import numpy as np
@@ -200,7 +200,7 @@ def vectorize_dataset(df, char2idx):
         Sets common datatype
     '''
     import numpy as np
-    
+
     Q = [ vectorize_tweet(tweet, char2idx) for tweet in df['text_x'].tolist() ]
     A = [ vectorize_tweet(tweet, char2idx) for tweet in df['text_y'].tolist() ]
 
@@ -210,7 +210,7 @@ def vectorize_dataset(df, char2idx):
 
     Q = np.stack(Q)
     A = np.stack(A)
-    
+
     Q = Q.astype(np.float32)
     A = A.astype(np.float32)
     return Q, A
@@ -219,33 +219,33 @@ def vectorize_dataset(df, char2idx):
 def train_test_val_split(Q, A, val_size, test_size, seed):
     import numpy as np
     import sklearn
-    
+
     # np.random.seed(seed)
     # perm = np.random.permutation(np.array(range(Q.shape[0])))
     # Q = Q[ perm , : ]
     # A = A[ perm , : ]
-    
+
     # shuffle
     Q, A = sklearn.utils.shuffle(Q, A, random_state = seed)
-    
+
     # Compute cutoffs to make splits
     train_val_cutoff = int( Q.shape[0] * (1-(val_size+test_size)) )
     val_test_cutoff = int( Q.shape[0] * (1 - test_size) )
-    
+
     Q_train = Q[ 0:train_val_cutoff , : ]
     A_train = A[ 0:train_val_cutoff , : ]
-    
+
     Q_val = Q[ train_val_cutoff:val_test_cutoff , : ]
     A_val = A[ train_val_cutoff:val_test_cutoff , : ]
-    
+
     Q_test = Q[ val_test_cutoff: , : ]
     A_test = A[ val_test_cutoff: , : ]
-    
+
     return Q_train, A_train, Q_val, A_val, Q_test, A_test
 
 
 def get_amazon_dataset(params):
-    ''' Main wrapper of the whole pipe. Returns ready-to-use dataset 
+    ''' Main wrapper of the whole pipe. Returns ready-to-use dataset
     of @amazonhelp customer support tweets '''
     import time
     import string
@@ -253,12 +253,12 @@ def get_amazon_dataset(params):
     import numpy as np
     import pandas as pd
     import langdetect
-    
+
     from pdb import set_trace as BP
-    
+
     # Load data
     df = pd.read_csv('{}twcs.csv'.format(params['data_path']))
-    
+
     # Generate alphabet
     alphabet = generate_alphabet()
     print('\tGeneration of alphabet of size {}.'.format(len(alphabet)))
@@ -266,33 +266,24 @@ def get_amazon_dataset(params):
     # Mapping char-index for vectorization
     char2idx = { char[1]: char[0] for char in enumerate(alphabet, 1) }
     print('\tCreation of dictionary for vectorization.')
-    
-    
-#     print('\n\nPRIMA DI organize_QA_dataframe:')
-#     BP()
-    
-    
+
     print('\tCleaning and processing of text data...')
     start = time.time()
     df = organize_QA_dataframe(df, alphabet)
     print('\t... Done in {}ss.'.format(round(time.time()-start, 2)))
-    
+
     Q, A = vectorize_dataset(df, char2idx)
     print('\tVectorization of characters.')
-    
-#     print('\nprova val_test_size:')
-#     print(params['val_test_size'][0])
-#     print(params['val_test_size'][1])
-    
-    print('\n\nDOPO organize_QA_dataframe - PRIMA DI tvt split:')
-    BP()
-    
-    
-    
-    Q_train, A_train, Q_val, A_val, Q_test, A_test = train_test_val_split(Q = Q, A = A, 
-                                                                          val_size = params['val_test_size'][0], 
+
+    Q_train, A_train, Q_val, A_val, Q_test, A_test = train_test_val_split(Q = Q, A = A,
+                                                                          val_size = params['val_test_size'][0],
                                                                           test_size = params['val_test_size'][1],
                                                                           seed = params['seed'])
     print('\tTrain-Validation-Test split.')
-    
+
+    # Expand dimensions for compatibility with model output
+    A_train = np.expand_dims(A_train, axis = -1)
+    A_val = np.expand_dims(A_val, axis = -1)
+    A_test = np.expand_dims(A_test, axis = -1)
+
     return Q_train, A_train, Q_val, A_val, Q_test, A_test, char2idx
