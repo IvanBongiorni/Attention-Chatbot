@@ -10,7 +10,7 @@ len_input: 286
 
 embedding_size: 300
 
-#encoder_lstm_units: 300
+# encoder_lstm_units: 286
 recurrent_initializer: "glorot_uniform"
 
 conv_filters: [8, 16, 32]
@@ -18,7 +18,7 @@ kernel_size: 3
 conv_activation: "elu"
 use_batchnorm: True
 
-#decoder_lstm_units: 300
+# decoder_lstm_units: 286
 decoder_dense_units: 250
 decoder_dense_activation: "elu"
 decoder_output_activation: "relu"

@@ -200,6 +200,7 @@ def vectorize_dataset(df, char2idx):
         Sets common datatype
     '''
     import numpy as np
+    from pdb import set_trace as BP
 
     Q = [ vectorize_tweet(tweet, char2idx) for tweet in df['text_x'].tolist() ]
     A = [ vectorize_tweet(tweet, char2idx) for tweet in df['text_y'].tolist() ]
@@ -213,6 +214,10 @@ def vectorize_dataset(df, char2idx):
 
     Q = Q.astype(np.float32)
     A = A.astype(np.float32)
+
+    print('\n\nIn vectorize_dataset(), vediamo come sono Q e A:\n')
+    BP()
+
     return Q, A
 
 
@@ -224,6 +229,8 @@ def train_test_val_split(Q, A, val_size, test_size, seed):
     # perm = np.random.permutation(np.array(range(Q.shape[0])))
     # Q = Q[ perm , : ]
     # A = A[ perm , : ]
+
+    from pdb import set_trace as BP
 
     # shuffle
     Q, A = sklearn.utils.shuffle(Q, A, random_state = seed)
@@ -240,6 +247,9 @@ def train_test_val_split(Q, A, val_size, test_size, seed):
 
     Q_test = Q[ val_test_cutoff: , : ]
     A_test = A[ val_test_cutoff: , : ]
+
+    print('\n\nDivisione di Q e A in t-v-t sets - Controlla il contenuto:')
+    BP()
 
     return Q_train, A_train, Q_val, A_val, Q_test, A_test
 
@@ -262,7 +272,7 @@ def get_amazon_dataset(params):
     # Generate alphabet
     alphabet = generate_alphabet()
     print('\tGeneration of alphabet of size {}.'.format(len(alphabet)))
-    
+
     # Mapping char-index for vectorization
     char2idx = { char[1]: char[0] for char in enumerate(alphabet, 1) }
     print('\tCreation of dictionary for vectorization.')
