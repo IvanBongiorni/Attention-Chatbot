@@ -29,23 +29,19 @@ def build(params):
     import tensorflow as tf
     from tensorflow.keras.models import Model
     from tensorflow.keras.layers import (
-        InputLayer, Embedding, LSTM, RepeatVector, Conv1D, BatchNormalization,
+        Input, Embedding, LSTM, RepeatVector, Conv1D, BatchNormalization,
         Concatenate, LSTM, TimeDistributed, Dense
     )
 
     # ENCODER
-    # encoder_input = InputLayer(input_shape = (params['len_input']), name = 'input')
+    encoder_input = Input(shape = (params['len_input'],))
 
     encoder_embedding = Embedding(input_dim = params['dict_size'],
-                                  output_dim = params['embedding_size'],
-                                  input_length = params['len_input'],
-                                  name = 'embedding') #(encoder_input)
+                                  output_dim = params['embedding_size'])(encoder_input)
 
-    encoder_lstm = LSTM(params['len_input'],
-                        name = 'encoder_lstm')(encoder_embedding)
+    encoder_lstm = LSTM(params['len_input'], name = 'encoder_lstm')(encoder_embedding)
 
-    encoder_output = RepeatVector(params['len_input'],
-                                  name = 'encoder_output')(encoder_lstm)
+    encoder_output = RepeatVector(params['len_input'], name = 'encoder_output')(encoder_lstm)
 
     # Convolutional Self-Attention
     conv_1 = Conv1D(filters = params['conv_filters'][0], kernel_size = params['kernel_size'],
@@ -79,7 +75,7 @@ def build(params):
                                      name = 'decoder_output')(decoder_dense)
 
 
-    model = Model(inputs = [encoder_embedding], outputs = [decoder_output])
+    model = Model(inputs = [encoder_input], outputs = [decoder_output])
     return model
 
 
@@ -87,35 +83,33 @@ def start_training(model, params, X_train, Y_train, X_val, Y_val):
     import time
     import numpy as np
     import tensorflow as tf
-
+        
+    optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
+    
     @tf.function
-    def train_on_batch():
-        take = iteration * batch_size
-        X_batch = X_train[ take:take+batch_size , : ]
-        Y_batch = Y_train[ take:take+batch_size , : ]
-
-        with tf.GrandientTape() as tape:
+    def train_on_batch(model, X_batch, Y_batch):
+        with tf.GradientTape() as tape:
             current_loss = tf.reduce_mean(
-                tf.keras.losses.sparse_categorical_crossentropy(Y_batch, model(X_batch),
-                                                                from_logits = True))
+                tf.keras.losses.sparse_categorical_crossentropy(
+                    Y_batch, model(X_batch), from_logits = True))
         gradients = tape.gradient(current_loss, model.trainable_variables)
         optimizer.apply_gradients(zip(gradients, model.trainable_variables))
         return current_loss
-
-    optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
-
-    # loss_history = []
-
+    
+    
     for epoch in range(params['n_epochs']):
         start = time.time()
 
         for iteration in range(X_train.shape[0] // params['batch_size']):
-            current_loss = train_on_batch()
-            # loss_history.append(current_loss)
-
-        validation_loss = tf.reduce_mean(
-            tf.keras.losses.sparse_categorical_crossentropy(Y_val, model(X_val),
-                                                            from_logits = True))
+            take = iteration * params['batch_size']
+            X_batch = X_train[ take:take+params['batch_size'] , : ]
+            Y_batch = Y_train[ take:take+params['batch_size'] , : ]
+            
+            current_loss = train_on_batch(model, X_batch, Y_batch)
+            
+            validation_loss = tf.reduce_mean(
+                tf.keras.losses.sparse_categorical_crossentropy(
+                    Y_val, model(X_val), from_logits = True))
 
         print('{}.   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
             epoch,
