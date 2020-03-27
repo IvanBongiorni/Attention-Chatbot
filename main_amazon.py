@@ -38,40 +38,13 @@ def start(verbose = True):
     # Load data
     print('Loading and preprocessing data:')
     Q_train, A_train, Q_val, A_val, Q_test, A_test, char2idx = tools_amazon.get_amazon_dataset(params)
-    ### BLOCCO TEMPORANEO PER VELOCIZZARE PIPELINE
-    # import pickle
-    # pickle.dump(Q_train, open("/home/ivan/Documents/ML/projects/NLP/chatbot/Q_train.pkl", "wb"))
-    # pickle.dump(A_train, open("/home/ivan/Documents/ML/projects/NLP/chatbot/A_train.pkl", "wb"))
-    # pickle.dump(Q_val, open("/home/ivan/Documents/ML/projects/NLP/chatbot/Q_val.pkl", "wb"))
-    # pickle.dump(A_test, open("/home/ivan/Documents/ML/projects/NLP/chatbot/A_val.pkl", "wb"))
-    # pickle.dump(Q_test, open("/home/ivan/Documents/ML/projects/NLP/chatbot/Q_test.pkl", "wb"))
-    # pickle.dump(A_test, open("/home/ivan/Documents/ML/projects/NLP/chatbot/A_test.pkl", "wb"))
-    # pickle.dump(char2idx, open("/home/ivan/Documents/ML/projects/NLP/chatbot/char2idx.pkl", "wb"))
-    # Q_train = pickle.load(open("/home/ivan/Documents/ML/projects/NLP/chatbot/Q_train.pkl"))
-    # A_train = pickle.dump(open("/home/ivan/Documents/ML/projects/NLP/chatbot/A_train.pkl"))
-    # Q_val = pickle.dump(open("/home/ivan/Documents/ML/projects/NLP/chatbot/Q_val.pkl"))
-    # A_test = pickle.dump(open("/home/ivan/Documents/ML/projects/NLP/chatbot/A_val.pkl"))
-    # Q_test = pickle.dump(open("/home/ivan/Documents/ML/projects/NLP/chatbot/Q_test.pkl"))
-    # A_test = pickle.dump(open("/home/ivan/Documents/ML/projects/NLP/chatbot/A_test.pkl"))
-    # char2idx = pickle.dump(open("/home/ivan/Documents/ML/projects/NLP/chatbot/char2idx.pkl"))
+    
+    ###
+    ###
+    ###
 
     params['dict_size'] = len(char2idx)  # add as hyperparams to build model
-
-    # print('\n\nDOPO PICKLE LOAD:\n')
-    # BP()
-
-
-    # print('\n\n')
-    # print('Q_train:', Q_train.shape)
-    # print('A_train:', A_train.shape)
-    #
-    # print('Q_val:', Q_val.shape)
-    # print('A_val:', A_val.shape)
-    #
-    # print('Q_test:', Q_test.shape)
-    # print('A_test:', A_test.shape)
-    # print('\n\n')
-
+    
     # Instantiate model
     if params['load_saved_model']:
         print('Loading model from:\n{}'.format(current_path + '/saved_models/'))
@@ -81,14 +54,7 @@ def start(verbose = True):
         seq2seq = model.build(params)
         print('Model implemented as:\n')
         seq2seq.summary()
-
-
-    # print('\n\nControlla la dimensione del dizionario e i valori in Q e A')
-    # print('\n\nControlla i valori interni di Q e A')
-    # print('\n\nControlla params[len_input]')
-    # BP()
-
-
+    
     # Train model
     print('\nStart model training for {} epochs'.format(params['n_epochs']))
     model.start_training(seq2seq, params, Q_train, A_train, Q_val, A_val)
