@@ -7,7 +7,6 @@ seed: 123
 
 # Model Hyperparams
 len_input: 286
-
 embedding_size: 300
 
 # encoder_lstm_units: 286
