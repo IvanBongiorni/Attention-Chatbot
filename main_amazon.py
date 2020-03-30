@@ -38,13 +38,9 @@ def start(verbose = True):
     # Load data
     print('Loading and preprocessing data:')
     Q_train, A_train, Q_val, A_val, Q_test, A_test, char2idx = tools_amazon.get_amazon_dataset(params)
-    
-    ###
-    ###
-    ###
 
     params['dict_size'] = len(char2idx)  # add as hyperparams to build model
-    
+
     # Instantiate model
     if params['load_saved_model']:
         print('Loading model from:\n{}'.format(current_path + '/saved_models/'))
@@ -54,14 +50,14 @@ def start(verbose = True):
         seq2seq = model.build(params)
         print('Model implemented as:\n')
         seq2seq.summary()
-    
+
     # Train model
     print('\nStart model training for {} epochs'.format(params['n_epochs']))
     model.start_training(seq2seq, params, Q_train, A_train, Q_val, A_val)
 
     # Test model
     print("\n\nTesting model's performance on unseen data:")
-    model.check_performance_on_test_set(current_path + '/saved_models/' + params['model_name'],
+    model.check_performance_on_test_set(current_path + '/saved_models/' + params['model_name'] + '.h5',
                                         Q_test, A_test)
     return None
 
