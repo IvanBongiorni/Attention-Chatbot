@@ -79,37 +79,41 @@ def build(params):
     return model
 
 
-def start_training(model, params, X_train, Y_train, X_val, Y_val):
+def start_training(ANN, params, X_train, Y_train, X_val, Y_val):
     import time
     import numpy as np
+    from sklearn.utils import shuffle
     import tensorflow as tf
-        
+
     optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
-    
+
     @tf.function
-    def train_on_batch(model, X_batch, Y_batch):
+    def train_on_batch(seq2seq, X_batch, Y_batch):
         with tf.GradientTape() as tape:
             current_loss = tf.reduce_mean(
                 tf.keras.losses.sparse_categorical_crossentropy(
-                    Y_batch, model(X_batch), from_logits = True))
-        gradients = tape.gradient(current_loss, model.trainable_variables)
-        optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+                    Y_batch, ANN(X_batch), from_logits = True))
+        gradients = tape.gradient(current_loss, ANN.trainable_variables)
+        optimizer.apply_gradients(zip(gradients, ANN.trainable_variables))
         return current_loss
     
-    
+
     for epoch in range(params['n_epochs']):
         start = time.time()
+
+        if params['shuffle']:
+            X_train, Y_train = shuffle(X_train, Y_train)
 
         for iteration in range(X_train.shape[0] // params['batch_size']):
             take = iteration * params['batch_size']
             X_batch = X_train[ take:take+params['batch_size'] , : ]
             Y_batch = Y_train[ take:take+params['batch_size'] , : ]
-            
-            current_loss = train_on_batch(model, X_batch, Y_batch)
-            
+
+            current_loss = train_on_batch(ANN, X_batch, Y_batch)
+
             validation_loss = tf.reduce_mean(
                 tf.keras.losses.sparse_categorical_crossentropy(
-                    Y_val, model(X_val), from_logits = True))
+                    Y_val, ANN(X_val), from_logits = True))
 
         print('{}.   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
             epoch,
@@ -118,7 +122,7 @@ def start_training(model, params, X_train, Y_train, X_val, Y_val):
             round(time.time()-start, 2)
         ))
     print('Training complete.\n')
-    model.save('{}/{}.h5'.format(params['save_path'], params['model_name']))
+    ANN.save('{}/{}.h5'.format(params['save_path'], params['ANN_name']))
 
     print('Model saved at:\n\t{}'.format(params['save_path']))
     return None
