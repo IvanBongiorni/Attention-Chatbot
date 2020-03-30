@@ -123,7 +123,7 @@ def start_training(ANN, params, X_train, Y_train, X_val, Y_val):
                 round(time.time()-start, 2)
             ))
 
-    ANN.save('{}/{}.h5'.format(params['save_path'], params['ANN_name']))
+    ANN.save('{}/{}.h5'.format(params['save_path'], params['model_name']))
 
     if params['verbose']:
         print('Training complete.\n')
