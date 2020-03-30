@@ -96,7 +96,7 @@ def start_training(ANN, params, X_train, Y_train, X_val, Y_val):
         gradients = tape.gradient(current_loss, ANN.trainable_variables)
         optimizer.apply_gradients(zip(gradients, ANN.trainable_variables))
         return current_loss
-    
+
 
     for epoch in range(params['n_epochs']):
         start = time.time()
@@ -115,16 +115,19 @@ def start_training(ANN, params, X_train, Y_train, X_val, Y_val):
                 tf.keras.losses.sparse_categorical_crossentropy(
                     Y_val, ANN(X_val), from_logits = True))
 
-        print('{}.   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
-            epoch,
-            current_loss.numpy(),
-            validation_loss.numpy(),
-            round(time.time()-start, 2)
-        ))
-    print('Training complete.\n')
+        if params['verbose']:
+            print('{}.   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
+                epoch,
+                current_loss.numpy(),
+                validation_loss.numpy(),
+                round(time.time()-start, 2)
+            ))
+
     ANN.save('{}/{}.h5'.format(params['save_path'], params['ANN_name']))
 
-    print('Model saved at:\n\t{}'.format(params['save_path']))
+    if params['verbose']:
+        print('Training complete.\n')
+        print('Model saved at:\n\t{}'.format(params['save_path']))
     return None
 
 
@@ -134,8 +137,7 @@ def check_performance_on_test_set(model_path, X_test, Y_test):
 
     model = tf.keras.models.load_model(model_path)
 
-    #P_test = model.predict(X_test)
-
+    # P_test = model.predict(X_test)
     test_loss = tf.reduce_mean(
         tf.keras.losses.sparse_categorical_crossentropy(Y_test, model(X_test),
                                                         from_logits = True))
