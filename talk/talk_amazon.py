@@ -30,23 +30,22 @@ def talk(params):
 
     ### TODO: Load model
 
-    tweet = input('@User:\t')
+    chat_ongoing = True
 
-    if tweet == 'Quit':
-        print('\nShutting Chatbot down.')
-        print('Conversation closed.')
-    else:
-        tweet = process_question(tweet)
+    while chat_ongoing:
+        tweet = input('@User:\t')
 
-        ### TODO: use time.sleep() to delay answer slightly
-
-        # Run model prediction,
-        answer = model.predict(tweet)
-        answer = process_answer(tweet)
-        print('@amazonhelp:\t{}'.format(answer))
-
-        # Recall Chatbot again
-        talk(params)
+        if tweet == 'Quit':
+            print('\nShutting Chatbot down.')
+            print('Conversation closed.')
+            chat_ongoing = False
+        else:
+            tweet = process_question(tweet)
+            answer = model.predict(tweet)
+            answer = process_answer(tweet)
+            
+            time.sleep(np.random.randint(0.3, 1))  # delay answer slightly
+            print('@amazonhelp:\t{}'.format(answer))
 
     return None
 
