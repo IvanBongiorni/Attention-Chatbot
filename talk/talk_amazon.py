@@ -34,16 +34,19 @@ def talk(params):
 
     while chat_ongoing:
         tweet = input('@User:\t')
+        tweet = tweet.strip()  # basic cleaning
 
         if tweet == 'Quit':
             print('\nShutting Chatbot down.')
             print('Conversation closed.')
             chat_ongoing = False
+        elif not tweet:
+            print('[ Please type a message ]')
         else:
             tweet = process_question(tweet)
             answer = model.predict(tweet)
             answer = process_answer(tweet)
-            
+
             time.sleep(np.random.randint(0.3, 1))  # delay answer slightly
             print('@amazonhelp:\t{}'.format(answer))
 
