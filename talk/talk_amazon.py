@@ -26,9 +26,9 @@ def talk(params):
     import tensorflow as tf
 
     print('\nInteraction with {} for @amazonhelp.'.format(params['model_name']))
-    print("\t[Type 'Quit' to exit chat]")
-
-    ### TODO: Load model
+    print("\t[ Type 'quit' to exit chat ]")
+    
+    model = tf.keras.models.load_model('{}/{}.h5'.format(params['save_path'], params['model_name']))
 
     chat_ongoing = True
 
