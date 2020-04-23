@@ -1,1 +1,3 @@
-This folder is meant to contain the *twcs.csv* file from Kaggle
+This folder is meant to contain the raw dataset [as downloaded from Kaggle](https://www.kaggle.com/thoughtvector/customer-support-on-twitter/data).
+
+- `twcs.csv`
