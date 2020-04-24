@@ -215,8 +215,8 @@ def vectorize_dataset(df, char2idx):
     Q = Q.astype(np.float32)
     A = A.astype(np.float32)
 
-    print('\n\nIn vectorize_dataset(), vediamo come sono Q e A:\n')
-    BP()
+    # print('\n\nIn vectorize_dataset(), vediamo come sono Q e A:\n')
+    # BP()
 
     return Q, A
 
@@ -248,8 +248,8 @@ def train_test_val_split(Q, A, val_size, test_size, seed):
     Q_test = Q[ val_test_cutoff: , : ]
     A_test = A[ val_test_cutoff: , : ]
 
-    print('\n\nDivisione di Q e A in t-v-t sets - Controlla il contenuto:')
-    BP()
+    # print('\n\nDivisione di Q e A in t-v-t sets - Controlla il contenuto:')
+    # BP()
 
     return Q_train, A_train, Q_val, A_val, Q_test, A_test
 
