@@ -72,12 +72,12 @@ def build(params):
     # scores = tf.nn.tanh(conv_3, name = 'conv_output')
 
     # DECODER
-    concatenation = Concatenate(axis = -1, name = 'concatenation')([encoder_output, scores])
+    concatenation = Concatenate(axis = -1, name = 'concatenation')([encoder_output, conv_2])
 
     decoder_lstm = LSTM(params['len_input'], return_sequences = True, name = 'decoder_lstm')(concatenation)
     decoder_dense = TimeDistributed(Dense(params['decoder_dense_units'], activation = params['decoder_dense_activation']),
                                     name = 'decoder_dense')(decoder_lstm)
-    decoder_output = TimeDistributed(Dense(params['dict_size'], activation = params['decoder_output_activation']),
+    decoder_output = TimeDistributed(Dense(params['dict_size'], activation = None),
                                      name = 'decoder_output')(decoder_dense)
 
     model = Model(inputs = [encoder_input], outputs = [decoder_output])
@@ -113,7 +113,9 @@ def start_training(ANN, params, X_train, Y_train, X_val, Y_val):
         start = time.time()
 
         if params['shuffle']:
-            X_train, Y_train = shuffle(X_train, Y_train)
+            shuffle = np.random.choice(X_train.shape[0], size = X_train.shape[0], replace = False)
+            X_train = X_train[ shuffle ]
+            Y_train = Y_train[ shuffle ]
 
         for iteration in range(X_train.shape[0] // params['batch_size']):
             take = iteration * params['batch_size']
