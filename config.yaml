@@ -7,12 +7,12 @@ seed: 123
 
 # Model Hyperparams
 len_input: 286
-embedding_size: 300
+embedding_size: 100
 
 # encoder_lstm_units: 286
 recurrent_initializer: "glorot_uniform"
 
-conv_filters: [8, 16, 32]
+conv_filters: [32, 32, 32]
 kernel_size: 3
 conv_activation: "elu"
 use_batchnorm: True
@@ -20,13 +20,11 @@ use_batchnorm: True
 # decoder_lstm_units: 286
 decoder_dense_units: 250
 decoder_dense_activation: "elu"
-decoder_output_activation: "relu"
 
 
 # Training params
 val_test_size: [0.05, 0.05]
-n_epochs: 50
+n_epochs: 25
 shuffle: True
 batch_size: 64
-learning_rate: 0.0001
-verbose: True
+learning_rate: 0.0005
