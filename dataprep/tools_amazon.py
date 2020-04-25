@@ -205,6 +205,10 @@ def vectorize_dataset(df, char2idx):
     Q = [ vectorize_tweet(tweet, char2idx) for tweet in df['text_x'].tolist() ]
     A = [ vectorize_tweet(tweet, char2idx) for tweet in df['text_y'].tolist() ]
 
+    ###
+    ### TODO: CAMBIARE LO ZERO PADDING PER A - A DX
+    ###
+
     max_length = max(len(max(Q, key=len)), len(max(A, key=len)))
     Q = [ np.concatenate([ np.zeros((max_length-len(q))), q ]) for q in Q ]
     A = [ np.concatenate([ np.zeros((max_length-len(a))), a ]) for a in A ]
