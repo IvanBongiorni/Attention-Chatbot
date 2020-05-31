@@ -24,7 +24,7 @@ decoder_dense_activation: "elu"
 
 # Training params
 val_test_size: [0.05, 0.05]
-n_epochs: 25
+n_epochs: 4
 shuffle: True
 batch_size: 64
 learning_rate: 0.0005
