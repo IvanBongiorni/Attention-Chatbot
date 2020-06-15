@@ -128,7 +128,7 @@ def main(verbose = True):
     print('Train Q/A size:     ', Q_train.shape)
     print('Validation Q/A size:', Q_val.shape)
     print('Test Q/A size:      ', Q_test.shape)
-    
+
     print('\nProcessing executed in {}ss.'.format(round(time.time()-start, 2)))
     return None
 
