@@ -39,6 +39,8 @@ def main(verbose = True):
     char2idx['<END>'] = len(char2idx) + 1
     char2idx['<UNK>'] = len(char2idx) + 1
     char2idx['<START>'] = 0
+    # Save dictionary for training later
+    yaml.dump(char2idx, open(os.getcwd()+'/data_processed/char2idx_amazon.yaml', 'w'), default_flow_style=False)
 
     ## CLEANING
     # Pick clients' tweets that started a chat
@@ -77,11 +79,17 @@ def main(verbose = True):
     Q = [ tools_amazon.vectorize_tweet(tweet, char2idx) for tweet in exchanges['text_x'].tolist() ]
     A = [ tools_amazon.vectorize_tweet(tweet, char2idx) for tweet in exchanges['text_y'].tolist() ]
 
+    ## PACK INTO FINAL ARRAYS
     # NaN-padding on the right based on max_length
     max_length = max(len(max(Q, key=len)), len(max(A, key=len)))
-    Q = [ tools_amazon.nan_pad(tweet, max_length) for tweet in Q ]
-    A = [ tools_amazon.nan_pad(tweet, max_length) for tweet in A ]
-    
+    Q = [ np.concatenate([ q, np.empty((max_length-len(q))) ]) for q in Q ]
+    A = [ np.concatenate([ a, np.empty((max_length-len(a))) ]) for a in A ]
+
+    Q = np.stack(Q)
+    A = np.stack(A)
+    Q = Q.astype(np.float32)
+    A = A.astype(np.float32)
+
     ## TRAIN-VALIDATION-TEST SPLIT
     sample = np.random.choice(
         range(3),
@@ -105,9 +113,9 @@ def main(verbose = True):
     Q_train = pd.DataFrame(Q_train)
     A_train = pd.DataFrame(A_train)
     Q_val = pd.DataFrame(Q_val)
-    Q_val = pd.DataFrame(Q_val)
+    A_val = pd.DataFrame(A_val)
     Q_test = pd.DataFrame(Q_test)
-    Q_test = pd.DataFrame(Q_test)
+    A_test = pd.DataFrame(A_test)
 
     Q_train.to_csv(os.getcwd() + '/data_processed/Q_train.csv', index = False, header = False)
     A_train.to_csv(os.getcwd() + '/data_processed/A_train.csv', index = False, header = False)
@@ -116,12 +124,12 @@ def main(verbose = True):
     Q_test.to_csv(os.getcwd() + '/data_processed/Q_test.csv', index = False, header = False)
     A_test.to_csv(os.getcwd() + '/data_processed/A_test.csv', index = False, header = False)
 
-    print('Data saved in /data_processed/* directories:')
-    print('Train Q/A size:     ', Q_train.shape, A_train.shape)
-    print('Validation Q/A size:', Q_val.shape, A_val.shape)
-    print('Test Q/A size:      ', Q_test.shape, A_test.shape)
-
-    print('\nProcessing executed in {}ss.'.format(roudn(time.time()-start, 2)))
+    print('\nData saved in /data_processed/* directories:')
+    print('Train Q/A size:     ', Q_train.shape)
+    print('Validation Q/A size:', Q_val.shape)
+    print('Test Q/A size:      ', Q_test.shape)
+    
+    print('\nProcessing executed in {}ss.'.format(round(time.time()-start, 2)))
     return None
 
 
