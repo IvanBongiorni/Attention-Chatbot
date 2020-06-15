@@ -1,24 +1,22 @@
 # CONFIGURATION PARAMETERS
 
-model_name: "seq2seq_chatbot_00"
-load_saved_model: False
+model_name: "chatbot_00"
 seed: 123
 
 
 # Model Hyperparams
-len_input: 286
-embedding_size: 100
+embedding_size: 200
 
-# encoder_lstm_units: 286
+encoder_lstm_units: 100
 recurrent_initializer: "glorot_uniform"
 
-conv_filters: [32, 32, 32]
+conv_filters: [32, 32, 32, 32, 32]
 kernel_size: 3
 conv_activation: "elu"
 use_batchnorm: True
 
-# decoder_lstm_units: 286
-decoder_dense_units: 250
+decoder_lstm_units: 100
+decoder_dense_units: 100
 decoder_dense_activation: "elu"
 
 
