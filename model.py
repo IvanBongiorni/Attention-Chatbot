@@ -14,15 +14,9 @@ import time
 import numpy as np
 import tensorflow as tf
 
-# Solves Convolution CuDNN error
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-    try:
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-    except RuntimeError as e:
-        print(e)
+import tools.tools_amazon as tools
 
+tools.set_gpu_configurations()
 
 
 def build(params):
@@ -48,102 +42,63 @@ def build(params):
 
     # ENCODER
     encoder_input = Input(shape = (params['len_input'],))
-
     encoder_embedding = Embedding(input_dim = params['dict_size'], output_dim = params['embedding_size'])(encoder_input)
+
     encoder_lstm = LSTM(params['len_input'], name = 'encoder_lstm')(encoder_embedding)
     encoder_output = RepeatVector(params['len_input'], name = 'encoder_output')(encoder_lstm)
 
     # Convolutional block
-    conv_1 = Conv1D(filters = params['conv_filters'][0], kernel_size = params['kernel_size'],
-                    activation = params['conv_activation'], padding = 'same', name = 'conv1')(encoder_embedding)
+    conv_1 = Conv1D(
+        filters = params['conv_filters'],
+        kernel_size = params['kernel_size'],
+        activation = params['conv_activation'],
+        padding = 'same',
+        name = 'conv1')(encoder_embedding)
     if params['use_batchnorm']:
         conv_1 = BatchNormalization(name = 'batchnorm_1')(conv_1)
 
-    conv_2 = Conv1D(filters = params['conv_filters'][1], kernel_size = params['kernel_size'],
-                    activation = params['conv_activation'], padding = 'same', name = 'conv2')(conv_1)
+    conv_2 = Conv1D(
+        filters = params['conv_filters'],
+        kernel_size = params['kernel_size'],
+        activation = params['conv_activation'],
+        padding = 'same',
+        name = 'conv2')(conv_1)
     if params['use_batchnorm']:
-        conv_2 = BatchNormalization(name = 'batcnorm_2')(conv_2)
+        conv_2 = BatchNormalization(name = 'batchnorm_1')(conv_2)
 
-    conv_3 = Conv1D(filters = params['conv_filters'][2], kernel_size = params['kernel_size'],
-                    activation = params['conv_activation'], padding = 'same', name = 'conv3')(conv_2)
+    conv_3 = Conv1D(
+        filters = params['conv_filters'],
+        kernel_size = params['kernel_size'],
+        activation = params['conv_activation'],
+        padding = 'same',
+        name = 'conv3')(conv_2)
     if params['use_batchnorm']:
-        conv_3 = BatchNormalization(name = 'batchnorm_3')(conv_3)
+        conv_3 = BatchNormalization(name = 'batchnorm_1')(conv_1)
 
-    # scores = tf.nn.tanh(conv_3, name = 'conv_output')
+    conv_4 = Conv1D(
+        filters = params['conv_filters'],
+        kernel_size = params['kernel_size'],
+        activation = params['conv_activation'],
+        padding = 'same',
+        name = 'conv4')(conv_3)
+    if params['use_batchnorm']:
+        conv_4 = BatchNormalization(name = 'batchnorm_1')(conv_4)
 
     # DECODER
-    concatenation = Concatenate(axis = -1, name = 'concatenation')([encoder_output, conv_2])
+    concatenation = Concatenate(axis=-1, name = 'concatenation')([encoder_output, conv_4])
 
     decoder_lstm = LSTM(params['len_input'], return_sequences = True, name = 'decoder_lstm')(concatenation)
-    decoder_dense = TimeDistributed(Dense(params['decoder_dense_units'], activation = params['decoder_dense_activation']),
-                                    name = 'decoder_dense')(decoder_lstm)
-    decoder_output = TimeDistributed(Dense(params['dict_size'], activation = None),
-                                     name = 'decoder_output')(decoder_dense)
+    decoder_dense = TimeDistributed(
+        Dense(params['decoder_dense_units'],
+              activation = params['decoder_dense_activation'],
+              name = 'decoder_dense'))(decoder_lstm)
+    decoder_output = TimeDistributed(
+        Dense(params['dict_size'],
+              activation = None,
+              name = 'decoder_output'))(decoder_dense)
 
     model = Model(inputs = [encoder_input], outputs = [decoder_output])
     return model
-
-
-def start_training(ANN, params, X_train, Y_train, X_val, Y_val):
-    import time
-    import numpy as np
-    from sklearn.utils import shuffle
-
-    import tensorflow as tf
-    # config = tf.compat.v1.ConfigProto()
-    # config.gpu_options.allow_growth = True
-    # sess = tf.Session(config = config)
-
-    optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
-
-    @tf.function
-    def train_on_batch(seq2seq, X_batch, Y_batch):
-        with tf.GradientTape() as tape:
-            current_loss = tf.reduce_mean(
-                tf.keras.losses.sparse_categorical_crossentropy(
-                    Y_batch, seq2seq(X_batch), from_logits = True))
-        gradients = tape.gradient(current_loss, seq2seq.trainable_variables)
-        optimizer.apply_gradients(zip(gradients, seq2seq.trainable_variables))
-        return current_loss
-
-    print('\nStart Training:')
-    print('{} epochs x {} iterations.\n'.format(params['n_epochs'], X_train.shape[0] // params['batch_size']))
-
-    for epoch in range(params['n_epochs']):
-        start = time.time()
-
-        if params['shuffle']:
-            shuffle = np.random.choice(X_train.shape[0], size = X_train.shape[0], replace = False)
-            X_train = X_train[ shuffle ]
-            Y_train = Y_train[ shuffle ]
-
-        for iteration in range(X_train.shape[0] // params['batch_size']):
-            take = iteration * params['batch_size']
-            X_batch = X_train[ take:take+params['batch_size'] , : ]
-            Y_batch = Y_train[ take:take+params['batch_size'] , : ]
-
-            current_loss = train_on_batch(ANN, X_batch, Y_batch)
-
-            # print('{}.   \tTraining Loss: {}   \tTime: {}ss'.format(epoch, current_loss.numpy(), round(time.time()-start, 2)))
-
-        # To spare memory, compute val_loss on random subset of Val data
-        val_sample = np.random.choice(X_val.shape[0], size = params['batch_size'], replace = False)
-        validation_loss = tf.reduce_mean(
-            tf.keras.losses.sparse_categorical_crossentropy(
-                Y_val[ val_sample , : ], ANN(X_val[ val_sample , : ]), from_logits = True))
-
-        print('{}.   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
-            epoch,
-            current_loss.numpy(),
-            validation_loss.numpy(),
-            round(time.time()-start, 2)
-        ))
-
-    ANN.save('{}/{}.h5'.format(params['save_path'], params['model_name']))
-
-    print('Training complete.\n')
-    print('Model saved at:\n{}'.format(params['save_path']))
-    return None
 
 
 def check_performance_on_test_set(model_path, X_test, Y_test):
