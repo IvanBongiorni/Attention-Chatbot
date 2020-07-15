@@ -22,8 +22,7 @@ The model is a **Seq2Seq** Neural Network with **LSTM** layers and **Convolution
 
 ## Modules
 
-`pyyaml`,
-`tensorflow == 2.1.0`,
-`numpy`,
-`pandas`,
-`langdetect`
+`tensorflow==2.1.0`,
+`numpy==1.18.1`,
+`pandas==1.0.1`
+
