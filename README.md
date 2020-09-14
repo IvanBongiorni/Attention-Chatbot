@@ -1,4 +1,5 @@
 # WARNING: WORK IN PROGRESS
+Please don't use this repository yet, model building and training is currently going on elsewhere. I'll be back with a working model ASAP.
 
 # Chatbot for Twitter Customer Support.
 
