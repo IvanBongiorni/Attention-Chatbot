@@ -17,7 +17,7 @@ The model is a **Seq2Seq** Neural Network with **LSTM** layers and **Luong Atten
 
 Folders:
 - `/data_raw`: uncompressed raw dataset must be pasted here.
-- `/data_processed`: all pre-processed observations will be saved in `/Training` and `/Test` sub-folders.
+- `/data_processed`: all pre-processed observations will be saved in `/Training` and `/Test` sub-folders. It contains also .yaml dictionaries to translate from token (character) to vector; their naming convention is `char2idx_{company}.yaml`.
 - `/dataprep`: contains all data preprocessing scripts, with names as `dataprep_{company}.py`.
 - `/tools`: useful functions to be iterated in dataprep. One main `tools.py` module contains functions used for all models. For more company-specific tools other modules are available as `tools_{company}.py`.
 - `/saved_models`: 
