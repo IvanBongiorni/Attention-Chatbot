@@ -1,5 +1,6 @@
 # CONFIGURATION PARAMETERS
 model_name: "chatbot_00"
+
 val_test_ratio: [0.05, 0.05]
 shuffle: True
 seed: 123
@@ -9,16 +10,7 @@ learning_rate: 0.0005
 n_epochs: 4
 batch_size: 32
 val_batch_size: 128
+
 embedding_size: 200
-
-encoder_lstm_units: 100
-recurrent_initializer: "glorot_uniform"
-
-conv_filters: 64
-kernel_size: 3
-conv_activation: "elu"
-use_batchnorm: False
-
-decoder_lstm_units: 100
-decoder_dense_units: 100
-decoder_dense_activation: "elu"
+encoder_lstm_units: 128
+decoder_lstm_units: 128
