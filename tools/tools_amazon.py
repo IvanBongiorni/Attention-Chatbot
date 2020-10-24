@@ -15,7 +15,7 @@ Data are pre-processed for character embedding RNNs.
 def set_gpu_configurations(params):
     ''' Avoid repetition of this GPU setting block '''
     import tensorflow as tf
-    
+
     print('Setting GPU configurations.')
     # This block avoids GPU configuration errors
     if params['use_gpu']:
@@ -55,7 +55,9 @@ def generate_alphabet():
     alphabet = alphabet.replace('\t\n\r\x0b\x0c', '')
     alphabet = alphabet.replace(';<=>', '')
     alphabet = alphabet.replace('*+', '')
-    # alphabet += '§' # ö'
+
+    # This is for URLs
+    alphabet += '§' # ö'
 
     alphabet = list(alphabet)
 
@@ -126,14 +128,16 @@ def clean_text(tweet):
 
     tweet = tweet.replace('&amp;', '&')
     tweet = tweet.replace('@amazonhelp', '') # Remove '@amazonhelp'
-
-    tweet = re.sub(r'@[0-9]+', '', tweet) # reference id's (e.g. '@12345')
     tweet = re.sub(r'(\^\w*)$', '', tweet) # Remove final signature (e.g.: ... ^ib)
+    tweet = re.sub(r"\([0-9]/[0-9]\)", "", tweet)  # reference to tweet parts, e.g.: "... (1/2)"
+    tweet = re.sub(r"[0-9]/[0-9]", "", tweet) # or "... 1/2"
     tweet = tweet.replace('\u200d♂️', '') # recurrent two emoji codes
     tweet = tweet.replace('\u200d♀️', '')
 
-    # Removes ref to tweet parts, e.g.: "... (1/2)"
-    tweet = re.sub(r"\([0-9]/[0-9]\)", "", tweet)
+    tweet = re.sub(r'@[0-9]+', '', tweet) # reference id's (e.g. '@12345')
+
+    # # Remove all numbers!
+    # tweet = re.sub(r'[0-9]+', '', tweet)
 
     # Substitution of elements with anonymized tags
     tweet = re.sub(r'https?://\S+|www\.\S+', '§', tweet) # Replace URLs with char §
