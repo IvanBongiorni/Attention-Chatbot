@@ -1,12 +1,13 @@
 """
 Author: Ivan Bongiorni,     https://github.com/IvanBongiorni
-2020-06-15
+2020-10-24
 
-DATA PRE PROCESSING PIPELINE
+DATA PRE-PROCESSING PIPELINE
 
-This is meant to be run before training pieline. It loads a dataframe stored at
-/data_raw/twcs.csv and processes and saves Train, Validation and Test data in
-/data_processed/* directories.
+This is meant to be run before training pieline. Loads raw dataframe stored as
+/data_raw/twcs.csv and processes tweets by company. It saves individual (q, a)
+processed tweet couples in /data_processed/Training, /Validation and /Test folders
+as .npy files.
 """
 from pdb import set_trace as BP
 
