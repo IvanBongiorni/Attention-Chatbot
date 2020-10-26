@@ -43,3 +43,5 @@ numpy==1.18.1
 pandas==1.0.1
 ```
 
+## Bibliography
+- *Luong, Minh-Thang, Hieu Pham, and Christopher D. Manning. "Effective approaches to attention-based neural machine translation." arXiv preprint arXiv:1508.04025 (2015).*
