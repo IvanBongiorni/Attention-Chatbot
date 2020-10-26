@@ -44,4 +44,10 @@ pandas==1.0.1
 ```
 
 ## Bibliography
+
+Papers:
 - *Luong, Minh-Thang, Hieu Pham, and Christopher D. Manning. "Effective approaches to attention-based neural machine translation." arXiv preprint arXiv:1508.04025 (2015).*
+
+Other useful resources:
+- The official TensorFlow tutorial on a [Neural machine translation with attention](https://www.tensorflow.org/tutorials/text/nmt_with_attention).
+- [Attention-based Sequence-to-Sequence in Keras](https://wanasit.github.io/attention-based-sequence-to-sequence-in-keras.html) on Wanasit Tanakitrungruang's [blog](https://wanasit.github.io/).
