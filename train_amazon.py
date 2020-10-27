@@ -1,34 +1,35 @@
 """
-Author: Ivan Bongiorni
-2020-06-16
-Repository:
+Author: Ivan Bongiorni      2020-10-27
 
 MODEL TRAINING
 """
 
 
 def main():
+    '''
+    Model training. Loads configs and lists of Train and Val filenames to sample
+    mini batches.
+    Each model is either loaded if found in /saved_models, or implemented from
+    scratch.
+    At each iteration a (Q,A) mini batch is built and trained with custom train
+    function (Autograph). Print models performance on Validation periodically.
+    Model is then saved (overwritten) in /saved_models.
+    '''
     import os
     import yaml
     import time
     import numpy as np
-    import pandas as pd
+
+    # Set TensorFlow GPU configurations
     import tensorflow as tf
-    
-    # local imports
-    import model
-    import tools.tools_amazon as tools
-    
     tools.set_gpu_configurations()
 
-    print('Loading configuration parameters.')
-    params = yaml.load( open(os.getcwd() + '/config.yaml'), yaml.Loader )
+    # Local imports
+    import model
+    import tools.tools_amazon as tools
 
-    print('Loading preprocessed data.')
-    X_train = pd.read_csv(os.getcwd()+'/data_processed/Q_train.csv')
-    Y_train = pd.read_csv(os.getcwd()+'/data_processed/A_train.csv')
-    X_val = pd.read_csv(os.getcwd()+'/data_processed/Q_val.csv')
-    Y_val = pd.read_csv(os.getcwd()+'/data_processed/A_val.csv')
+    # Load config params
+    params = yaml.load(open(os.getcwd() + '/config.yaml'), yaml.Loader)
 
     # If model already exists, load it. Else make one
     if params['model_name']+'.h5' in os.listdir(os.getcwd()+'/saved_models/'):
@@ -38,14 +39,25 @@ def main():
         print('Creation of new model: "{}"'.format(params['model_name']))
         chatbot = model.build(params)
 
+    # List all Train an Validation files
+    filenames_train = os.listdir(os.getcwd() + '/data_processed/Training/')
+    if 'readme_training.md' in filenames_train: filenames_train.remove('readme_training.md')
+    if '.gitignore' in filenames_train: filenames_train.remove('.gitignore')
+    filenames_train = np.array(filenames_train)
+
+    filenames_val = os.listdir(os.getcwd() + '/data_processed/Validation/')
+    if 'readme_validation.md' in filenames_val: filenames_val.remove('readme_validation.md')
+    if '.gitignore' in filenames_val: filenames_val.remove('.gitignore')
+    filenames_val = np.array(filenames_val)
+
+    # Define optimizer and train step function - with Loss
     optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
 
     @tf.function
-    def train_on_batch(X_batch, Y_batch):
+    def train_on_batch(Q_batch, A_batch):
         with tf.GradientTape() as tape:
             current_loss = tf.reduce_mean(
-                tf.keras.losses.sparse_categorical_crossentropy(
-                    Y_batch, chatbot(X_batch), from_logits = True))
+                tf.keras.losses.sparse_categorical_crossentropy(A_batch, chatbot(Q_batch), from_logits=True))
         gradients = tape.gradient(current_loss, chatbot.trainable_variables)
         optimizer.apply_gradients(zip(gradients, chatbot.trainable_variables))
         return current_loss
@@ -54,34 +66,38 @@ def main():
     print('{} epochs x {} iterations.\n'.format(params['n_epochs'], X_train.shape[0] // params['batch_size']))
 
     for epoch in range(params['n_epochs']):
-        start = time.time()
 
+        # Shuffle data by shuffling filenames array
         if params['shuffle']:
-            index = np.random.choice(X_train.shape[0], size = X_train.shape[0], replace = False)
+            filenames_train = filenames_train[ np.random.choice(filenames_train.shape[0], filenames_train.shape[0], replace=False) ]
 
-        for iteration in range(X_train.shape[0] // params['batch_size']):
-            take = index[iteration * params['batch_size']]
-            X_batch = X_train[take]
-            Y_batch = Y_train[take]
+        for iteration in range(filenames_train.shape[0] // params['batch_size']):
+            # Fetch batch by filenames index and train
+            start = iteration * params['batch_size']
+            batch = [ np.load('{}/data_processed/Training/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in X_files[start:start+params['batch_size']] ]
+            Q_batch = np.concatenate([ array[0] for array in batch ])
+            A_batch = np.concatenate([ array[1] for array in batch ])
 
-            training_loss = train_on_batch(X_batch, Y_batch)
+            # Train step
+            training_loss = train_on_batch(Q_batch, A_batch)
 
-        # To spare memory, compute val_loss on random subset of Val data
-        val_sample = np.random.choice(X_val.shape[0], size = params['val_batch_size'], replace = False)
-        validation_loss = tf.reduce_mean(
-            tf.keras.losses.sparse_categorical_crossentropy(
-                Y_val[ val_sample , : ], chatbot(X_val[ val_sample , : ]), from_logits = True))
+        if iteration % 50 == 0:
+                batch = np.random.choice(filenames_val, size=params['val_batch_size'], replace=False)
+                batch = [ np.load('{}/data_processed/Validation/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in filenames_val[start:start+params['val_batch_size']] ]
 
-        print('{}.   \tTraining Loss: {}   \tValidation Loss: {}   \tTime: {}ss'.format(
-            epoch,
-            training_loss.numpy(),
-            validation_loss.numpy(),
-            round(time.time()-start, 2)
-        ))
+                Q_batch = np.concatenate([ array[0] for array in batch ])
+                A_batch = np.concatenate([ array[1] for array in batch ])
+
+                validation_loss = tf.reduce_mean(
+                    tf.keras.losses.sparse_categorical_crossentropy(A_batch, chatbot(Q_batch), from_logits=True))
+
+                print('{}.{}   \tTraining Loss: {}   \tValidation Loss: {}'.format(
+                    epoch, iteration, current_loss, validation_loss))
+
     print('\nTraining complete.\n')
 
-    chatbot.save(os.getcwd()+'/saved_models/'+params['model_name']+'.h5')
-    print('Model saved at:\n' + os.getcwd()+'/saved_models/'+params['model_name']+'.h5')
+    chatbot.save(os.getcwd() + '/saved_models/' + params['model_name'] + '.h5')
+    print('Model saved at:\n' + os.getcwd() + '/saved_models/' + params['model_name'] + '.h5')
     return None
 
 
