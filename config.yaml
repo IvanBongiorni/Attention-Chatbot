@@ -8,9 +8,11 @@ seed: 123
 # Model Hyperparams
 learning_rate: 0.0005
 n_epochs: 4
-batch_size: 32
+batch_size: 64
 val_batch_size: 128
 
 embedding_size: 200
 encoder_lstm_units: 128
 decoder_lstm_units: 128
+
+use_gpu: True
