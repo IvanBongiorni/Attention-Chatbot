@@ -42,13 +42,13 @@ def build(params):
     # Encoder receives tokenized input, generates representation and gives it to LSTM
     # Internal staset are returned, to be fed into Decoder LSTM.
     encoder_input = Input(shape=(None,))
-    encoder_embedding = Embedding(input_dim=params['vocab_size'], output_dim=params['embedding_size'], name='Encoder Embedding')(encoder_input)
+    encoder_embedding = Embedding(input_dim=params['vocab_size'], output_dim=params['embedding_size'], name='Encoder_Embedding')(encoder_input)
     encoder_lstm_output, encoder_h, encoder_c = LSTM(64, return_state=True, name='Encoder_LSTM')(encoder_embedding)
 
     # Decoder receives answer through teacher forcing, then generates representation
     # the LSTM layer produces a representation for the next char
     decoder_input = Input(shape=(None,))
-    decoder_embedding = Embedding(input_dim=params['vocab_size'], output_dim=params['embedding_size'], name='Decoder Embedding')(decoder_input)
+    decoder_embedding = Embedding(input_dim=params['vocab_size'], output_dim=params['embedding_size'], name='Decoder_Embedding')(decoder_input)
     decoder_lstm_output = LSTM(64, name='Decoder_LSTM')(decoder_embedding, initial_state=[encoder_h, encoder_c])
 
     # Multiplicative Attention attends Encoder and Decoder LSTM outputs
@@ -59,7 +59,7 @@ def build(params):
     context_vector = attention * encoder_lstm_output
     decoder_combined_context = Concatenate()([decoder_lstm_output, context_vector])
 
-    decoder_dense_output = Dense(65, activation='softmax', name='Output layer')(decoder_combined_context)
+    decoder_dense_output = Dense(65, activation='softmax', name='Output_Layer')(decoder_combined_context)
 
     # model = Model(inputs=[encoder_input, decoder_input], outputs=[decoder_output, attention])
     model = Model(inputs=[encoder_input, decoder_input], outputs=decoder_dense_output)
