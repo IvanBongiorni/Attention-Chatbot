@@ -3,6 +3,7 @@ Author: Ivan Bongiorni      2020-10-27
 
 MODEL TRAINING
 """
+from pdb import set_trace as BP
 
 
 def main():
@@ -20,16 +21,20 @@ def main():
     import time
     import numpy as np
 
-    # Set TensorFlow GPU configurations
-    import tensorflow as tf
-    tools.set_gpu_configurations()
-
     # Local imports
     import model
     import tools.tools_amazon as tools
 
     # Load config params
     params = yaml.load(open(os.getcwd() + '/config.yaml'), yaml.Loader)
+
+    # Set TensorFlow GPU configurations
+    import tensorflow as tf
+    tools.set_gpu_configurations(params)
+
+    # Load char2idx dict to get 'vocab_size' parameter
+    char2idx = yaml.load(open(os.getcwd() + '/data_processed/char2idx_amazon.yaml'), yaml.Loader)
+    params['vocab_size'] = len(char2idx)+1  # additional +1 for 0 (right padding)
 
     # If model already exists, load it. Else make one
     if params['model_name']+'.h5' in os.listdir(os.getcwd()+'/saved_models/'):
@@ -38,6 +43,7 @@ def main():
     else:
         print('Creation of new model: "{}"'.format(params['model_name']))
         chatbot = model.build(params)
+    chatbot.summary()
 
     # List all Train an Validation files
     filenames_train = os.listdir(os.getcwd() + '/data_processed/Training/')
@@ -51,20 +57,30 @@ def main():
     filenames_val = np.array(filenames_val)
 
     # Define optimizer and train step function - with Loss
-    optimizer = tf.keras.optimizers.Adam(learning_rate = params['learning_rate'])
+    loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=params['learning_rate'])
 
     @tf.function
     def train_on_batch(Q_batch, A_batch):
+
         with tf.GradientTape() as tape:
-            current_loss = tf.reduce_mean(
-                tf.keras.losses.sparse_categorical_crossentropy(A_batch, chatbot(Q_batch), from_logits=True))
-        gradients = tape.gradient(current_loss, chatbot.trainable_variables)
+            batch_loss = 0
+
+            for i in range(A_batch.shape[0]):
+                next_char_prediction = chatbot([Q_batch, A_batch[:,0:i+1]])  # Teacher forcing
+
+                # compute loss of this specific char and add it to existing batch_loss
+                batch_loss += loss(A_batch[:,i:i+1], next_char_prediction)
+
+            batch_loss /= A_batch.shape[1]  # Mean Loss
+
+        gradients = tape.gradient(batch_loss, chatbot.trainable_variables)
         optimizer.apply_gradients(zip(gradients, chatbot.trainable_variables))
-        return current_loss
+        return batch_loss
+
 
     print('\nStart Training:')
-    print('{} epochs x {} iterations.\n'.format(params['n_epochs'], X_train.shape[0] // params['batch_size']))
-
+    print('{} epochs x {} iterations.\n'.format(params['n_epochs'], len(filenames_train) // params['batch_size']))
     for epoch in range(params['n_epochs']):
 
         # Shuffle data by shuffling filenames array
@@ -74,25 +90,27 @@ def main():
         for iteration in range(filenames_train.shape[0] // params['batch_size']):
             # Fetch batch by filenames index and train
             start = iteration * params['batch_size']
-            batch = [ np.load('{}/data_processed/Training/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in X_files[start:start+params['batch_size']] ]
-            Q_batch = np.concatenate([ array[0] for array in batch ])
-            A_batch = np.concatenate([ array[1] for array in batch ])
+            batch = [ np.load('{}/data_processed/Training/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in filenames_train[start:start+params['batch_size']] ]
+            Q_batch = np.stack([ array[0] for array in batch ])
+            A_batch = np.stack([ array[1] for array in batch ])
 
             # Train step
             training_loss = train_on_batch(Q_batch, A_batch)
 
-        if iteration % 50 == 0:
+            if iteration % 50 == 0:
                 batch = np.random.choice(filenames_val, size=params['val_batch_size'], replace=False)
-                batch = [ np.load('{}/data_processed/Validation/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in filenames_val[start:start+params['val_batch_size']] ]
+                batch = [ np.load('{}/data_processed/Validation/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in batch ]
 
-                Q_batch = np.concatenate([ array[0] for array in batch ])
-                A_batch = np.concatenate([ array[1] for array in batch ])
+                Q_batch = np.stack([ array[0] for array in batch ])
+                A_batch = np.stack([ array[1] for array in batch ])
 
-                validation_loss = tf.reduce_mean(
-                    tf.keras.losses.sparse_categorical_crossentropy(A_batch, chatbot(Q_batch), from_logits=True))
+                validation_loss = 0
+                for i in range(A_batch.shape[0]):
+                    next_char_prediction = chatbot([Q_batch, A_batch[:,0:i+1]])
+                    validation_loss += loss(A_batch[:,i:i+1], next_char_prediction)
+                validation_loss /= A_batch.shape[1]
 
-                print('{}.{}   \tTraining Loss: {}   \tValidation Loss: {}'.format(
-                    epoch, iteration, current_loss, validation_loss))
+                print(f'{epoch}.{iteration}  \tTraining Loss: {training_loss}  \tValidation Loss: {validation_loss}')
 
     print('\nTraining complete.\n')
 
