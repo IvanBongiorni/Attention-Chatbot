@@ -59,7 +59,7 @@ def build(params):
     context_vector = attention * encoder_lstm_output
     decoder_combined_context = Concatenate()([decoder_lstm_output, context_vector])
 
-    decoder_dense_output = Dense(65, activation='softmax', name='Output_Layer')(decoder_combined_context)
+    decoder_dense_output = Dense(65, activation=params['output_activation'], name='Output_Layer')(decoder_combined_context)
 
     # model = Model(inputs=[encoder_input, decoder_input], outputs=[decoder_output, attention])
     model = Model(inputs=[encoder_input, decoder_input], outputs=decoder_dense_output)
