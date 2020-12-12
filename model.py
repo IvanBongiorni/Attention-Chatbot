@@ -27,7 +27,9 @@ def build(params):
     After Encoder produces an output, Decoder receives its hidden states and produces
     its own. The two outputs are combined, multiplicatively, to get attention scores
     and a context vector. It gets concatenated to Decoder's LSTM output, and fed to
-    a final Dense layer with softmax output for next char prediction.
+    a final Dense layer for next char prediction. Its activation is optional
+    (defaults to 'linear') because softmax operation is already present in TensorFlow's
+    SparseCategoricalCrossentropy().
 
     NB: Event though an Attention() layer is already available in tf.keras (implementing
     Luong's multiplicative attention) I won't use it for RNNs. As reported in the official
