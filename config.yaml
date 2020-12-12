@@ -17,3 +17,6 @@ decoder_lstm_units: 64
 output_activation: 'linear'
 
 use_gpu: True
+
+# minor param: delay in seconds (float) in final chat
+chat_sleep_time: 0
