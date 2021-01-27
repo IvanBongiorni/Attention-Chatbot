@@ -1,24 +1,22 @@
 # CONFIGURATION PARAMETERS
 model_name: "chatbot_00"
-val_test_ratio: [0.05, 0.05]
+
+val_test_ratio: [0.07, 0.07]
 shuffle: True
 seed: 123
 
 # Model Hyperparams
 learning_rate: 0.0005
-n_epochs: 4
-batch_size: 32
+n_epochs: 1
+batch_size: 64
 val_batch_size: 128
+
 embedding_size: 200
+encoder_lstm_units: 64
+decoder_lstm_units: 64
+output_activation: 'linear'
 
-encoder_lstm_units: 100
-recurrent_initializer: "glorot_uniform"
+use_gpu: True
 
-conv_filters: 64
-kernel_size: 3
-conv_activation: "elu"
-use_batchnorm: False
-
-decoder_lstm_units: 100
-decoder_dense_units: 100
-decoder_dense_activation: "elu"
+# minor param: delay in seconds (float) in final chat
+chat_sleep_time: 0

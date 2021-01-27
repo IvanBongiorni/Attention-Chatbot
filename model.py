@@ -14,103 +14,86 @@ import time
 import numpy as np
 import tensorflow as tf
 
+# Local imports
 import tools.tools_amazon as tools
-
-tools.set_gpu_configurations()
 
 
 def build(params):
-    """
-    Implements a seq2seq RNN with Convolutional self attention. It keeps a canonical
-    Encoder-Decoder structure: an Embedding layers receives the sequence of chars and
-    learns a representation. This series is received by two different layers at the same time.
-    First, an LSTM Encoder layer, whose output is repeated and sent to the Decoder. Second, a
-    block of 1D Conv layers. Their kernel filters work as multi-head self attention layers.
-    All their scores are pushed through a TanH gate that scales each score in the [-1,1] range.
-    Both LSTM and Conv outputs are concatenated and sent to an LSTM Decoder, that processes
-    the signal and sents it to Dense layers, performing the prediction for each step of the
-    output series.
+    '''
+    Seq2seq RNN with Multiplicative attention mechanism.
 
-    Args: params dict
-    """
+    The model must be thought as a couple of ANNs: Encoder and Decoder. Since its a
+    seq2seq task, each has its Input() layer - for Q and A in this specific case.
+    After Encoder produces an output, Decoder receives its hidden states and produces
+    its own. The two outputs are combined, multiplicatively, to get attention scores
+    and a context vector. It gets concatenated to Decoder's LSTM output, and fed to
+    a final Dense layer for next char prediction. Its activation is optional
+    (defaults to 'linear') because softmax operation is already present in TensorFlow's
+    SparseCategoricalCrossentropy().
+
+    NB: Event though an Attention() layer is already available in tf.keras (implementing
+    Luong's multiplicative attention) I won't use it for RNNs. As reported in the official
+    docs, that level is suitable for dense and conv nets only, and not for RNNs.
+    That is why I have implemented my own Attention mechanism.
+    '''
+    import numpy as np
     import tensorflow as tf
     from tensorflow.keras.models import Model
-    from tensorflow.keras.layers import (
-        Input, Embedding, LSTM, RepeatVector, Conv1D, BatchNormalization,
-        Concatenate, LSTM, TimeDistributed, Dense
-    )
+    from tensorflow.keras.layers import Input, Embedding, LSTM, Dot, Activation, Attention, Concatenate, Dense
 
-    # ENCODER
-    encoder_input = Input(shape = (params['len_input'],))
-    encoder_embedding = Embedding(input_dim = params['dict_size'], output_dim = params['embedding_size'])(encoder_input)
+    # Encoder receives tokenized input, generates representation and gives it to LSTM
+    # Internal staset are returned, to be fed into Decoder LSTM.
+    encoder_input = Input(shape=(None,))
+    encoder_embedding = Embedding(input_dim=params['vocab_size'], output_dim=params['embedding_size'], name='Encoder_Embedding')(encoder_input)
+    encoder_lstm_output, encoder_h, encoder_c = LSTM(64, return_state=True, name='Encoder_LSTM')(encoder_embedding)
 
-    encoder_lstm = LSTM(params['len_input'], name = 'encoder_lstm')(encoder_embedding)
-    encoder_output = RepeatVector(params['len_input'], name = 'encoder_output')(encoder_lstm)
+    # Decoder receives answer through teacher forcing, then generates representation
+    # the LSTM layer produces a representation for the next char
+    decoder_input = Input(shape=(None,))
+    decoder_embedding = Embedding(input_dim=params['vocab_size'], output_dim=params['embedding_size'], name='Decoder_Embedding')(decoder_input)
+    decoder_lstm_output = LSTM(64, name='Decoder_LSTM')(decoder_embedding, initial_state=[encoder_h, encoder_c])
 
-    # Convolutional block
-    conv_1 = Conv1D(
-        filters = params['conv_filters'],
-        kernel_size = params['kernel_size'],
-        activation = params['conv_activation'],
-        padding = 'same',
-        name = 'conv1')(encoder_embedding)
-    if params['use_batchnorm']:
-        conv_1 = BatchNormalization(name = 'batchnorm_1')(conv_1)
+    # Multiplicative Attention attends Encoder and Decoder LSTM outputs
+    attention = encoder_lstm_output * decoder_lstm_output
+    attention = Activation('softmax', name='Attention')(attention)
 
-    conv_2 = Conv1D(
-        filters = params['conv_filters'],
-        kernel_size = params['kernel_size'],
-        activation = params['conv_activation'],
-        padding = 'same',
-        name = 'conv2')(conv_1)
-    if params['use_batchnorm']:
-        conv_2 = BatchNormalization(name = 'batchnorm_1')(conv_2)
+    # The context vector is then combined with original Decoder LSTM output for prediction
+    context_vector = attention * encoder_lstm_output
+    decoder_combined_context = Concatenate()([decoder_lstm_output, context_vector])
 
-    conv_3 = Conv1D(
-        filters = params['conv_filters'],
-        kernel_size = params['kernel_size'],
-        activation = params['conv_activation'],
-        padding = 'same',
-        name = 'conv3')(conv_2)
-    if params['use_batchnorm']:
-        conv_3 = BatchNormalization(name = 'batchnorm_1')(conv_1)
+    decoder_dense_output = Dense(65, activation=params['output_activation'], name='Output_Layer')(decoder_combined_context)
 
-    conv_4 = Conv1D(
-        filters = params['conv_filters'],
-        kernel_size = params['kernel_size'],
-        activation = params['conv_activation'],
-        padding = 'same',
-        name = 'conv4')(conv_3)
-    if params['use_batchnorm']:
-        conv_4 = BatchNormalization(name = 'batchnorm_1')(conv_4)
-
-    # DECODER
-    concatenation = Concatenate(axis=-1, name = 'concatenation')([encoder_output, conv_4])
-
-    decoder_lstm = LSTM(params['len_input'], return_sequences = True, name = 'decoder_lstm')(concatenation)
-    decoder_dense = TimeDistributed(
-        Dense(params['decoder_dense_units'],
-              activation = params['decoder_dense_activation'],
-              name = 'decoder_dense'))(decoder_lstm)
-    decoder_output = TimeDistributed(
-        Dense(params['dict_size'],
-              activation = None,
-              name = 'decoder_output'))(decoder_dense)
-
-    model = Model(inputs = [encoder_input], outputs = [decoder_output])
+    # model = Model(inputs=[encoder_input, decoder_input], outputs=[decoder_output, attention])
+    model = Model(inputs=[encoder_input, decoder_input], outputs=decoder_dense_output)
     return model
 
 
-def check_performance_on_test_set(model_path, X_test, Y_test):
-    import numpy as np
-    import tensorflow as tf
-
-    model = tf.keras.models.load_model(model_path)
-
-    # P_test = model.predict(X_test)
-    test_loss = tf.reduce_mean(
-        tf.keras.losses.sparse_categorical_crossentropy(Y_test, model(X_test),
-                                                        from_logits = True))
-
-    print("\nTest Loss: {}".format(test_loss.numpy()))
-    return None
+# import numpy as np
+# import tensorflow as tf
+# from tensorflow.keras.models import Model
+# from tensorflow.keras.layers import Input, Embedding, LSTM, Attention, Concatenate, Dense
+#
+# # Encoder receives tokenized input, generates representation and gives it to LSTM
+# encoder_input = Input(shape=(None,))
+# encoder_embedding = Embedding(input_dim=params['vocab_size'], output_dim=params['embedding_size'])(encoder_input)
+# encoder_output, encoder_h, encoder_c = LSTM(params['encoder_lstm_units'], return_states=True)(encoder_embedding)
+#
+# # Decoder receives answer through teacher forcing, then generates representation
+# # the LSTM layer produces a representation for the next char
+# decoder_input = Input(shape=(None,))
+# decoder_embedding = Embedding(input_dim=params['vocab_size'], output_dim=params['embedding_size'])(decoder_input)
+# decoder_lstm = LSTM(params['decoder_lstm_units'])(decoder_embedding, initial_state=[encoder_h, encoder_c])
+#
+# # Multiplicative Decoder pays attention to Encoder to produce next char prediction
+# attention = Attention()([decoder_lstm, encoder_lstm])
+# context = Concatenate()([decoder_lstm, attention])
+#
+#
+# attention = dot([decoder, encoder], axes=[2, 2])
+# attention = Activation('softmax')(attention)
+#
+#
+# decoder_output = Dense(params['vocab_size'], activation='softmax')(context)
+#
+# model = Model(inputs=[encoder_input, decoder_input], outputs=[decoder_output, attention])
+# return model
