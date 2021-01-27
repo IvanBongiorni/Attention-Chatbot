@@ -1,3 +1,6 @@
+# WARNING: WORK IN PROGRESS
+This repository is not ready yet. Please don't clone or use right now. A functioning prototype should be ready in the next weeks.
+
 # Attention-based Chatbot for Twitter Customer Support.
 
 This is a Chatbot for Twitter Customer Support.
