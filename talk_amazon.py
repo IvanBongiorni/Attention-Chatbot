@@ -86,6 +86,8 @@ def talk():
 
         # If tweet is OK then
         tweet = tweet.strip()  # basic cleaning
+        tweet = tweet.lower()
+
         if tweet.lower() == 'quit':
             print('\nShutting Chatbot down.')
             print('Conversation closed.')
@@ -102,15 +104,21 @@ def talk():
 
             counter = 0
 
+            # BP()
+
             # while a != char2idx['<END>'] or answer.shape[1] < 280:
             while answer.shape[1] < 280:
                 a = model.predict([tweet, answer.reshape((1, answer.shape[1]))])
                 a = np.argmax(a).reshape((1,1))
 
+                # print('char predicted:', a, 'token:', idx2char[a])
+
                 counter += 1
                 print('\n', counter, '\t', a, '\t\t', a.shape, answer.shape)
 
                 answer = np.hstack([answer, a])
+
+                print(answer)
 
             # At the end convert it to final text
             answer = process_answer(list(answer[0,:]), idx2char)
