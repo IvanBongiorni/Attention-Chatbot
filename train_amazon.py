@@ -60,17 +60,22 @@ def main():
     loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     optimizer = tf.keras.optimizers.Adam(learning_rate=params['learning_rate'])
 
+
+    #TODO: LA PREDIZIONE DEVE GIA PARTIRE DA '<START>' E GUARDARE DIRETTAMENTE
+    #      AL TOKEN SUCCESSIVO. NON SIAMO ANCORA AD UNA
+
     @tf.function
     def train_on_batch(Q_batch, A_batch):
-
         with tf.GradientTape() as tape:
             batch_loss = 0
 
-            for i in range(A_batch.shape[0]):
+            for i in range(1, A_batch.shape[0]):
                 next_char_prediction = chatbot([Q_batch, A_batch[:,0:i+1]])  # Teacher forcing
 
                 # compute loss of this specific char and add it to existing batch_loss
                 batch_loss += loss(A_batch[:,i:i+1], next_char_prediction)
+
+                # BP()
 
             batch_loss /= A_batch.shape[1]  # Mean Loss
 
@@ -93,6 +98,8 @@ def main():
             batch = [ np.load('{}/data_processed/Training/{}'.format(os.getcwd(), filename), allow_pickle=True) for filename in filenames_train[start:start+params['batch_size']] ]
             Q_batch = np.stack([ array[0] for array in batch ])
             A_batch = np.stack([ array[1] for array in batch ])
+
+            # BP()
 
             # Train step
             training_loss = train_on_batch(Q_batch, A_batch)
