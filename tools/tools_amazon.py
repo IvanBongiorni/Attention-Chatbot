@@ -11,6 +11,13 @@ providing a mapping between characters and numerical indexes.
 
 Data are pre-processed for character embedding RNNs.
 """
+import string
+import re
+
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+
 
 def set_gpu_configurations(params):
     ''' Avoid repetition of this GPU setting block '''
@@ -44,24 +51,6 @@ def set_gpu_configurations(params):
             print('Invalid device or cannot modify virtual devices once initialized.')
         pass
     return None
-
-
-def generate_alphabet():
-    import string
-
-    alphabet = string.printable
-    alphabet = alphabet.replace('ABCDEFGHIJKLMNOPQRSTUVWXYZ', '')
-    alphabet = alphabet.replace('[\\]^_`{|}~', '')
-    alphabet = alphabet.replace('\t\n\r\x0b\x0c', '')
-    alphabet = alphabet.replace(';<=>', '')
-    alphabet = alphabet.replace('*+', '')
-
-    # This is for URLs
-    alphabet += '§' # ö'
-
-    alphabet = list(alphabet)
-
-    return alphabet
 
 
 def check_language(tweet):
