@@ -1,11 +1,17 @@
 # CONFIGURATION PARAMETERS
-model_name: "chatbot_00"
+
+# min number of occurrencies for a token to enter the vocabulary
+count_threshold: 10
+
+# fixed length of processed tweets
+seq_len: 240
 
 val_test_ratio: [0.07, 0.07]
 shuffle: True
 seed: 123
 
 # Model Hyperparams
+model_name: "chatbot_00"
 learning_rate: 0.0005
 n_epochs: 1
 batch_size: 64

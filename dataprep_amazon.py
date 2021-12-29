@@ -18,6 +18,8 @@ import numpy as np
 import pandas as pd
 import langdetect
 
+import nltk
+
 # Local imports
 from tools import tools_amazon
 import model
@@ -65,29 +67,34 @@ def check_language(tweet):
         return 'en'
 
 
-def clean_text(tweet):
-    '''
-    This is the main, initial pre-processing function of texts. It executes the
-    following steps:
-        - Removes unwanted chars, such as utf-8 and emoji's
-        - Replaces URLs with char §
-        - Replaces order numbers with char ö
-        - Collapses multiple spaces into one, and trims final str
-    (It is to be iterated on whole dataset column with list comprehension.)
-
-    Further processing must be differentiated between Customers and Company tweets.
-    '''
+def clean_tweet(tweet):
     import re
+    from nltk import word_tokenize
 
-    # Removal of unwanted chars / patterns
-    tweet = tweet.replace('\t', ' ') # space or new line chars to subst with space
+    tweet = tweet.lower()  # lowercase
+
+    # Remove URLs
+    tweet = re.sub(r'http?://\S+|www\.\S+', 'URL', tweet)
+    tweet = re.sub(r'https?://\S+|www\.\S+', 'URL', tweet)
+    tweet = re.sub(r'@[a-zA-z0-9]+', 'USER', tweet)
+
+    # Distance punctuation to facilitate tokenization
+    tweet = tweet.replace(r"&amp;", " & ")
+    tweet = tweet.replace(r"&quot;", ' " ')
+    tweet = tweet.replace(r"&apos;", " ' ")
+    tweet = tweet.replace(r"&gt;", " > ")
+    tweet = tweet.replace(r"&lt;", " < ")
+    tweet = tweet.replace(r'.', ' . ')
+    tweet = tweet.replace(r';', ' ; ')
+    tweet = tweet.replace(r':', ' : ')
+
+    tweet = tweet.replace('\t', ' ')
     tweet = tweet.replace('\n', ' ')
     tweet = tweet.replace('\r', ' ')
     tweet = tweet.replace('\x0b', ' ')
     tweet = tweet.replace('\x0c', ' ')
     tweet = tweet.replace('\u200b', ' ')
     tweet = tweet.replace('\u200d', ' ')
-    tweet = tweet.replace(';', ",")
     tweet = tweet.replace('‘', "'")
     tweet = tweet.replace('‘', "'")
     tweet = tweet.replace('´', "'")
@@ -99,25 +106,17 @@ def clean_text(tweet):
     tweet = tweet.replace('\}', "\)")
     tweet = tweet.replace('\[', "\(")
     tweet = tweet.replace('\]', "\)")
-    tweet = tweet.replace('&amp;', '&')
-    # tweet = tweet.replace('@amazonhelp', '') # Remove '@amazonhelp'
     tweet = re.sub(r'(\^\w*)$', '', tweet) # Remove final signature (e.g.: ... ^ib)
     tweet = re.sub(r"\([0-9]/[0-9]\)", "", tweet)  # reference to tweet parts, e.g.: "... (1/2)"
     tweet = re.sub(r"[0-9]/[0-9]", "", tweet) # or "... 1/2"
     tweet = tweet.replace('\u200d♂️', '') # recurrent two emoji codes
     tweet = tweet.replace('\u200d♀️', '')
 
-    tweet = re.sub(r'@[0-9]+', 'referenceid', tweet) # single token for reference id's (e.g. '@12345')
+    tweet = re.sub(r' +', ' ', tweet)  # collapse multiple spaces into one
+    tweet = tweet.replace(r'#', '')  # remove '#'
 
-    # Remove remaining numbers with a value token
-    tweet = re.sub(r'[0-9]+', 'valuenumber', tweet)
+    tweet = nltk.word_tokenize(tweet)  # apply nltk tokenizer
 
-    # Substitution of elements with anonymized tags
-    tweet = re.sub(r'https?://\S+|www\.\S+', 'url', tweet) # Replace URLs with char §
-    # tweet = re.sub(r'\w{3}-\w{7}-\w{7}', 'ö', tweet) # Replace order numbers with char ö
-
-    tweet = re.sub(' +', ' ', tweet)  # collapse multiple spaces left into one
-    tweet = tweet.strip() # trim left and right spaces
     return tweet
 
 
@@ -159,10 +158,6 @@ def main():
     qa = qa[ qa['author_id_y']=='AmazonHelp' ]
     qa = qa[['text_x', 'text_y']]  # Keep only useful cols
 
-    # Turn all lowercase
-    qa['text_x'] = qa['text_x'].str.lower()
-    qa['text_y'] = qa['text_y'].str.lower()
-
     # Keep only 'en' tweets
     qa['english_x'] = [ check_language(tweet) for tweet in qa['text_x'] ]
     qa['english_y'] = [ check_language(tweet) for tweet in qa['text_y'] ]
@@ -172,18 +167,13 @@ def main():
     # Keep just complete tweets - not (1/2) or (2/2)'s
     qa = qa[ (~qa['text_y'].str.endswith('(1/2)')) & (~qa['text_y'].str.endswith('(2/2)')) ]
 
-    print('Cleaning text data.')
-    qa['text_x'] = [ clean_text(tweet) for tweet in qa['text_x'] ]
-    qa['text_y'] = [ clean_text(tweet) for tweet in qa['text_y'] ]
-
-    print('Start vectorization of tweets')
-    Q = [ tools_amazon.vectorize_tweet(tweet, char2idx) for tweet in exchanges['text_x'].tolist() ]
-    A = [ tools_amazon.vectorize_tweet(tweet, char2idx) for tweet in exchanges['text_y'].tolist() ]
+    print('Cleaning text data and vectorization.')
+    Q = [ clean_text(tweet) for tweet in qa['text_x'] ]
+    A = [ clean_text(tweet) for tweet in qa['text_y'] ]
 
     # Right zero pad
-    max_length = max(len(max(Q, key=len)), len(max(A, key=len)))
-    Q = [ np.concatenate([ q, np.zeros((max_length-len(q))) ]) for q in Q ]
-    A = [ np.concatenate([ a, np.zeros((max_length-len(a))) ]) for a in A ]
+    Q = [ np.concatenate([ q, np.zeros((params['seq_len']-len(q))) ]) for q in Q ]
+    A = [ np.concatenate([ a, np.zeros((params['seq_len']-len(a))) ]) for a in A ]
 
     # Train - Val - Test splits
     Q = np.stack(Q)
