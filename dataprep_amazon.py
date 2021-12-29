@@ -9,8 +9,67 @@ This is meant to be run before training pieline. Loads raw dataframe stored as
 processed tweet couples in /data_processed/Training, /Validation and /Test folders
 as .npy files.
 """
+import os
+import yaml
+import time
 from pdb import set_trace as BP
 
+import numpy as np
+import pandas as pd
+
+# Local imports
+from tools import tools_amazon
+import model
+
+
+def generate_vectorized_vocabulary():
+    import os
+
+    # go get raw data
+
+    # create corpus and extract words
+
+
+    # create vocabulary dict with standard tokens
+    word2idx = {}
+
+    word2idx['<START>']
+    word2idx['<UNK>']
+    word2idx['<END>']
+
+    word2idx
+
+    return word2idx
+
+
+def main():
+    import os
+    import yaml
+    import time
+
+    print('\nStart data pre-processing for @AmazonHelp.\n')
+    start = time.time()
+
+    print('Importing dataset and configuration parameters.')
+    df = pd.read_csv(os.getcwd() + '/data_raw/twcs.csv')
+    params = yaml.load(open(os.getcwd() + '/config.yaml'), yaml.Loader)
+
+    print('Creation of vectorized vocabulary.')
+    word2idx = generate__vectorized_vocabulary()
+
+    # Save dictionary for training later
+    yaml.dump(
+        word2idx,
+        open( os.path.join(os.getcwd(), 'data_processed', 'vocabulary_amazon.yaml'), 'w'),
+        default_flow_style=False
+    )
+
+
+    return None
+
+
+
+# OLD VERSION -- TO BE REPLACED
 
 def main(verbose = True):
     import os
