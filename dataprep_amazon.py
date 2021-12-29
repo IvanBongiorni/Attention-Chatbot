@@ -16,6 +16,7 @@ from pdb import set_trace as BP
 
 import numpy as np
 import pandas as pd
+import langdetect
 
 # Local imports
 from tools import tools_amazon
@@ -42,6 +43,85 @@ def generate_vectorized_vocabulary():
     return word2idx
 
 
+def check_language(tweet):
+    ''' Uses langdetect to check for English tweets. Non-English tweets won't be
+    considered. List remove_for_langdetect is meant to fix recurrent errors in
+    Japanese tweets that get mistaken for English. '''
+    import langdetect
+
+    remove_for_langdetect = [
+        'amazon fire tv stick', 'fire tv stick', 'amazonfiretvstick', 'amazonmusicunlimited',
+        'amazon kindle unlimited', 'amazon echo dot', 'prime music'
+    ]
+
+    if any([ element in tweet for element in remove_for_langdetect ]):
+        for element in remove_for_langdetect:
+            tweet = tweet.replace(element, '')
+
+    # return 'en' for no language tweets (like emojis only)
+    try:
+        return langdetect.detect(tweet)
+    except:
+        return 'en'
+
+
+def clean_text(tweet):
+    '''
+    This is the main, initial pre-processing function of texts. It executes the
+    following steps:
+        - Removes unwanted chars, such as utf-8 and emoji's
+        - Replaces URLs with char §
+        - Replaces order numbers with char ö
+        - Collapses multiple spaces into one, and trims final str
+    (It is to be iterated on whole dataset column with list comprehension.)
+
+    Further processing must be differentiated between Customers and Company tweets.
+    '''
+    import re
+
+    # Removal of unwanted chars / patterns
+    tweet = tweet.replace('\t', ' ') # space or new line chars to subst with space
+    tweet = tweet.replace('\n', ' ')
+    tweet = tweet.replace('\r', ' ')
+    tweet = tweet.replace('\x0b', ' ')
+    tweet = tweet.replace('\x0c', ' ')
+    tweet = tweet.replace('\u200b', ' ')
+    tweet = tweet.replace('\u200d', ' ')
+    tweet = tweet.replace(';', ",")
+    tweet = tweet.replace('‘', "'")
+    tweet = tweet.replace('‘', "'")
+    tweet = tweet.replace('´', "'")
+    tweet = tweet.replace('`', "'")
+    tweet = tweet.replace('’', "'")
+    tweet = tweet.replace('”', "'")
+    tweet = tweet.replace('“', "'")
+    tweet = tweet.replace('\{', "\(")
+    tweet = tweet.replace('\}', "\)")
+    tweet = tweet.replace('\[', "\(")
+    tweet = tweet.replace('\]', "\)")
+    tweet = tweet.replace('&amp;', '&')
+    # tweet = tweet.replace('@amazonhelp', '') # Remove '@amazonhelp'
+    tweet = re.sub(r'(\^\w*)$', '', tweet) # Remove final signature (e.g.: ... ^ib)
+    tweet = re.sub(r"\([0-9]/[0-9]\)", "", tweet)  # reference to tweet parts, e.g.: "... (1/2)"
+    tweet = re.sub(r"[0-9]/[0-9]", "", tweet) # or "... 1/2"
+    tweet = tweet.replace('\u200d♂️', '') # recurrent two emoji codes
+    tweet = tweet.replace('\u200d♀️', '')
+
+    tweet = re.sub(r'@[0-9]+', 'referenceid', tweet) # single token for reference id's (e.g. '@12345')
+
+    # Remove remaining numbers with a value token
+    tweet = re.sub(r'[0-9]+', 'valuenumber', tweet)
+
+    # Substitution of elements with anonymized tags
+    tweet = re.sub(r'https?://\S+|www\.\S+', 'url', tweet) # Replace URLs with char §
+    # tweet = re.sub(r'\w{3}-\w{7}-\w{7}', 'ö', tweet) # Replace order numbers with char ö
+
+    tweet = re.sub(' +', ' ', tweet)  # collapse multiple spaces left into one
+    tweet = tweet.strip() # trim left and right spaces
+    return tweet
+
+
+
 def main():
     import os
     import yaml
@@ -64,89 +144,48 @@ def main():
         default_flow_style=False
     )
 
-
-    return None
-
-
-
-# OLD VERSION -- TO BE REPLACED
-
-def main(verbose = True):
-    import os
-    import yaml
-    import time
-    import numpy as np
-    import pandas as pd
-
-    # Local imports
-    from tools import tools_amazon
-    import model
-
-    print('\nStart data pre-processing for @AmazonHelp.\n')
-    start = time.time()
-
-    ## LOAD data and config
-    print('Importing dataset and configuration parameters.')
-    df = pd.read_csv(os.getcwd() + '/data_raw/twcs.csv')
-    params = yaml.load(open(os.getcwd() + '/config.yaml'), yaml.Loader)
-
-    ## ALPHABET creation, vectorization and saving
-    print('Creation of vectorized alphabet.')
-    alphabet = tools_amazon.generate_alphabet()
-
-    # Add START, END tokens, and UNK for unknown tokens-chars
-    alphabet += ['<START>']
-    alphabet += ['<UNK>']
-    alphabet += ['<END>']
-
-    # Start enumerating and 1, use 0 for padding
-    char2idx = { char[1]: char[0] for char in enumerate(alphabet, 1) }
-
-    # Save dictionary for training later
-    yaml.dump(char2idx, open(os.getcwd()+'/data_processed/char2idx_amazon.yaml', 'w'), default_flow_style=False)
-
-    ## DATA CLEANING
+    print('Processing text data.')
     # Pick clients' tweets that started a chat
-    print('Cleaning text data.')
     exchanges = df[ df['inbound'] & (df['in_response_to_tweet_id'].isna()) ]
 
     # Attach relative answers
-    exchanges = exchanges.merge(df[['author_id', 'text', 'in_response_to_tweet_id']], left_on='tweet_id', right_on='in_response_to_tweet_id')
+    qa = qa.merge(
+        df[['author_id', 'text', 'in_response_to_tweet_id']],
+        left_on='tweet_id',
+        right_on='in_response_to_tweet_id'
+    )
 
     # Filter for current company
-    exchanges = exchanges[ exchanges['author_id_y']=='AmazonHelp' ]
-    exchanges = exchanges[['text_x', 'text_y']]  # Keep only useful cols
+    qa = qa[ qa['author_id_y']=='AmazonHelp' ]
+    qa = qa[['text_x', 'text_y']]  # Keep only useful cols
 
     # Turn all lowercase
-    exchanges['text_x'] = exchanges['text_x'].str.lower()
-    exchanges['text_y'] = exchanges['text_y'].str.lower()
+    qa['text_x'] = qa['text_x'].str.lower()
+    qa['text_y'] = qa['text_y'].str.lower()
 
     # Keep only 'en' tweets
-    exchanges['english_x'] = [ tools_amazon.check_language(tweet) for tweet in exchanges['text_x'].tolist() ]
-    exchanges['english_y'] = [ tools_amazon.check_language(tweet) for tweet in exchanges['text_y'].tolist() ]
-    exchanges = exchanges[ (exchanges['english_x']=='en') & (exchanges['english_y']=='en') ]
-    exchanges.drop(['english_x', 'english_y'], axis=1, inplace=True)
+    qa['english_x'] = [ check_language(tweet) for tweet in qa['text_x'] ]
+    qa['english_y'] = [ check_language(tweet) for tweet in qa['text_y'] ]
+    qa = qa[ (qa['english_x']=='en') & (qa['english_y']=='en') ]
+    qa.drop(['english_x', 'english_y'], axis=1, inplace=True)
 
     # Keep just complete tweets - not (1/2) or (2/2)'s
-    exchanges = exchanges[ (~exchanges['text_y'].str.endswith('(1/2)')) & (~exchanges['text_y'].str.endswith('(2/2)')) ]
+    qa = qa[ (~qa['text_y'].str.endswith('(1/2)')) & (~qa['text_y'].str.endswith('(2/2)')) ]
 
-    # Main text cleaning (regex based)
-    exchanges['text_x'] = [ tools_amazon.clean_text(tweet) for tweet in exchanges['text_x'].tolist() ]
-    exchanges['text_y'] = [ tools_amazon.clean_text(tweet) for tweet in exchanges['text_y'].tolist() ]
-    # Remove unknown signs from output
-    exchanges['text_y'] = [ tools_amazon.process_y_text(tweet, alphabet) for tweet in exchanges['text_y'].tolist() ]
+    print('Cleaning text data.')
+    qa['text_x'] = [ clean_text(tweet) for tweet in qa['text_x'] ]
+    qa['text_y'] = [ clean_text(tweet) for tweet in qa['text_y'] ]
 
-    ## VECTORIZE DATASET and RIGHT-ZERO PAD
-    print('Character vectorization.')
+    print('Start vectorization of tweets')
     Q = [ tools_amazon.vectorize_tweet(tweet, char2idx) for tweet in exchanges['text_x'].tolist() ]
     A = [ tools_amazon.vectorize_tweet(tweet, char2idx) for tweet in exchanges['text_y'].tolist() ]
 
+    # Right zero pad
     max_length = max(len(max(Q, key=len)), len(max(A, key=len)))
     Q = [ np.concatenate([ q, np.zeros((max_length-len(q))) ]) for q in Q ]
     A = [ np.concatenate([ a, np.zeros((max_length-len(a))) ]) for a in A ]
 
-    ## SAVE in single (q,a) couples, to facilitace batching during training
-    # First, pack Q and A whole matrices to facilitate Train-Val_test splits
+    # Train - Val - Test splits
     Q = np.stack(Q)
     A = np.stack(A)
     Q = Q.astype(np.float32)
@@ -155,12 +194,16 @@ def main(verbose = True):
     sample = np.random.choice(
         range(3),
         len(Q),
-        p = [1-np.sum(params['val_test_ratio']), params['val_test_ratio'][0], params['val_test_ratio'][1]],
-        replace = True)
+        p = [ 1-np.sum(params['val_test_ratio']), params['val_test_ratio'][0], params['val_test_ratio'][1] ],
+        replace = True
+    )
+
     Q_train = Q[ sample==0 , : ]
     A_train = A[ sample==0 , : ]
+
     Q_val = Q[ sample==1 , : ]
     A_val = A[ sample==1 , : ]
+
     Q_test = Q[ sample==2 , : ]
     A_test = A[ sample==2 , : ]
 
@@ -178,6 +221,7 @@ def main(verbose = True):
         np.save(os.getcwd()+'/data_processed/Test/X_{}'.format(str(i).zfill(6)), array)
 
     print('\nProcessing executed in {}ss.'.format(round(time.time()-start, 2)))
+
     return None
 
 
